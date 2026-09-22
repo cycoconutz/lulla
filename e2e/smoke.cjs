@@ -27,8 +27,8 @@ module.exports = async (t) => {
   t.check("open app", await clickText(t, "Done — open Lulla"))
   await t.wait(1800)
   body = await t.eval("document.body.innerText")
-  t.check("today greeting", body.includes("Ivy"))
-  t.check("quick log present", body.includes("Quick log"))
+  t.check("today greeting", body.includes("Hi, Ivy"))
+  t.check("quick log present", body.includes("QUICK LOG"))
   t.check("bottom nav", body.includes("Diaper") && body.includes("Growth") && body.includes("Mom"))
 
   await t.shot("e2e/smoke.png")
