@@ -115,6 +115,7 @@ export function defaultSettings(): Settings {
       { ageMonths: 9, windowMinutes: 180 },
       { ageMonths: 12, windowMinutes: 240 },
     ],
+    quietHours: null,
   }
 }
 

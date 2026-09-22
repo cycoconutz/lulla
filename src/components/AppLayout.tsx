@@ -7,6 +7,9 @@ import { useUIStore } from '../store/ui'
 import { MoonLogo } from './Logo'
 import { ChildSwitcher } from './ChildSwitcher'
 import { ActiveTimerBar } from './ActiveTimerBar'
+import { syncPushSchedule } from '../domain/push'
+import { getPushCred } from '../domain/pushCred'
+import { db } from '../db/schema'
 
 const NAV = [
   { to: '/', label: 'Today', icon: '🌙' },
@@ -39,6 +42,19 @@ export function AppLayoutPage() {
       setSelectedChildId(selected.id!)
     }
   }, [selected, setSelectedChildId])
+
+  const pushSettings = useLiveQuery(async () => (await db.settings.toArray())[0], [], undefined)
+  const pushChildren = useLiveQuery(listChildren, [], [])
+  const pushRev = useLiveQuery(
+    async () => (await db.events.orderBy('id').reverse().limit(1).first())?.id ?? 0,
+    [],
+    0,
+  )
+
+  useEffect(() => {
+    if (!getPushCred() || !pushSettings) return
+    void syncPushSchedule(pushSettings, pushChildren)
+  }, [pushSettings, pushChildren, pushRev])
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">

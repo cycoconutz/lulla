@@ -1,5 +1,6 @@
 import type { EventType, ReminderRule, Settings } from './types'
 import { latestEventOfTypes } from './repositories'
+import { getPushCred } from './pushCred'
 
 let timers: number[] = []
 
@@ -31,6 +32,9 @@ export async function scheduleRemindersForChild(
 ): Promise<void> {
   cancelReminders()
   if (!settings || childId == null) return
+  // When lock-screen push is active the server owns scheduling; in-page timers
+  // would double-fire while the app is open.
+  if (getPushCred()) return
   for (const rule of settings.reminders) {
     if (!rule.enabled) continue
     const type = rule.activity === 'mom' ? 'feeding' : rule.activity

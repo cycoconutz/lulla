@@ -13,7 +13,9 @@ import { listChildren } from '../../domain/repositories'
 import { exportBackup, importBackup, downloadJson } from '../../db/exportImport'
 import { eventsForChild } from '../../domain/repositories'
 import { downloadCsv } from '../../db/exportImport'
-import { requestNotificationPermission, notify, scheduleRemindersForChild } from '../../domain/reminders'
+import { notify, scheduleRemindersForChild } from '../../domain/reminders'
+import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
+import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
 
 const ACTIVITY_LABELS: Record<EventType, string> = {
@@ -36,6 +38,7 @@ export function SettingsPage() {
   }, [])
   const household = useLiveQuery(async () => (await db.household.toArray())[0], [])
   const [caregiverInput, setCaregiverInput] = useState('')
+  const [pushOn, setPushOn] = useState(() => getPushCred() != null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -150,19 +153,64 @@ export function SettingsPage() {
           ))}
         </div>
         <button
-          onClick={() =>
-            void requestNotificationPermission().then((ok) =>
-              notify(ok ? 'Lulla' : 'Lulla', ok ? 'Notifications enabled! 🔔' : 'Notifications were blocked by the browser.'),
-            )
-          }
+          onClick={() => {
+            void (async () => {
+              if (pushOn) {
+                await disablePush()
+                setPushOn(false)
+                notify('Lulla', 'Lock-screen reminders turned off.')
+                if (settings && selected) void scheduleRemindersForChild(settings, selected.id)
+                return
+              }
+              const res = await enablePush()
+              if (res.ok) {
+                setPushOn(true)
+                notify('Lulla', 'Lock-screen reminders on 🔔')
+                void syncPushSchedule(settings, children ?? [])
+              } else if (res.reason === 'unsupported') {
+                notify('Lulla', 'This browser can’t receive lock-screen reminders. Try Chrome or Safari.')
+              } else if (res.reason === 'permission') {
+                notify('Lulla', 'Notifications were blocked by the browser.')
+              } else {
+                notify('Lulla', 'Couldn’t turn on lock-screen reminders — check your connection.')
+              }
+            })()
+          }}
           className="btn-outline mt-3 w-full"
         >
-          🔔 Enable notifications
+          {pushOn ? '🔔 Lock-screen reminders: on — tap to turn off' : '🔕 Turn on lock-screen reminders'}
         </button>
+        {pushOn && (
+          <div className="mt-3 rounded-xl bg-sand px-3 py-2.5">
+            <div className="mb-2 text-xs font-extrabold uppercase tracking-wider text-muted">Quiet hours</div>
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <input
+                type="time"
+                value={settings.quietHours?.start ?? '21:00'}
+                onChange={(e) =>
+                  set({ quietHours: { start: e.target.value || '21:00', end: settings.quietHours?.end ?? '07:00' } })
+                }
+                className="rounded-lg bg-white px-2 py-1.5 text-xs font-bold outline-none"
+              />
+              <span className="text-muted">to</span>
+              <input
+                type="time"
+                value={settings.quietHours?.end ?? '07:00'}
+                onChange={(e) =>
+                  set({ quietHours: { start: settings.quietHours?.start ?? '21:00', end: e.target.value || '07:00' } })
+                }
+                className="rounded-lg bg-white px-2 py-1.5 text-xs font-bold outline-none"
+              />
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted">
+              No lock-screen nudges between these times (they’re ignored).
+            </p>
+          </div>
+        )}
         <p className="mt-2 text-[11px] leading-relaxed text-muted">
-          Reminders fire while Lulla is open in a tab (web apps can’t ring like an alarm clock). They nudge you
-          {settings.reminders.find((r) => r.enabled && r.intervalHours > 2) ? ' every few hours' : ''} after the last log
-          of each activity.
+          {pushOn
+            ? 'Lulla sends your reminders straight to this device’s lock screen — even when the app is closed. Only reminder text and times leave this browser; no logs or notes.'
+            : 'With lock-screen reminders on, Lulla nudges you after the last log of each activity — even when the app is closed. On iPhone: open Lulla in Safari → Share → Add to Home Screen first.'}
         </p>
       </section>
 

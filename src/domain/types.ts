@@ -153,6 +153,12 @@ export interface ReminderRule {
   enabled: boolean
 }
 
+/** Local-time window (HH:MM) during which lock-screen reminders stay silent. */
+export interface QuietHours {
+  start: string
+  end: string
+}
+
 export interface WakeWindowRule {
   ageMonths: number
   windowMinutes: number
@@ -166,6 +172,7 @@ export interface Settings {
   enabledActivities: EventType[]
   reminders: ReminderRule[]
   wakeWindows: WakeWindowRule[]
+  quietHours?: QuietHours | null
 }
 
 export const VOLUME_OPTIONS = ['oz', 'ml'] as const
