@@ -1,0 +1,22 @@
+# deps
+node_modules/
+*.tsbuildinfo
+dist/
+dist-ssr/
+
+# env
+.env
+.env.*
+!.env.example
+.neon
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
