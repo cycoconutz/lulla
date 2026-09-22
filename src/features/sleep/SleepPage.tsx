@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useNow } from '../../hooks/useNow'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
+import { findReopenCandidate, reopenSleep, tryMergeManualSleep } from '../../domain/sleep'
 import type { EventRecord, SleepPayload } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { windowForAge, suggestNextNap } from '../../domain/wakeWindows'
@@ -46,14 +47,22 @@ export function SleepPage() {
   const napSuggestion = lastWakeAt ? suggestNextNap(lastWakeAt, weeks) : null
 
   const startSleep = (k: 'nap' | 'night') => {
-    void recordEvent({
-      childId: selected.id!,
-      type: 'sleep',
-      startedAt: nowIso(),
-      payload: { kind: k } satisfies SleepPayload,
-      createdAt: nowIso(),
-    })
-    void useUIStore.getState().loadActiveTimers(selected.id!)
+    void (async () => {
+      const startedAt = nowIso()
+      const reopened = await findReopenCandidate(selected.id!, startedAt, k)
+      if (reopened) {
+        await reopenSleep(reopened)
+      } else {
+        await recordEvent({
+          childId: selected.id!,
+          type: 'sleep',
+          startedAt,
+          payload: { kind: k } satisfies SleepPayload,
+          createdAt: nowIso(),
+        })
+      }
+      void useUIStore.getState().loadActiveTimers(selected.id!)
+    })()
   }
 
   return (
@@ -134,6 +143,16 @@ function ManualSleep({ childId, defaultKind, onClose }: { childId: number; defau
       endedAt: end,
       payload: { kind, startedExplicit: true, endedExplicit: true } satisfies SleepPayload,
       createdAt: nowIso(),
+    }).then(async (id) => {
+      await tryMergeManualSleep(childId, {
+        id,
+        childId,
+        type: 'sleep',
+        startedAt: start,
+        endedAt: end,
+        payload: { kind, startedExplicit: true, endedExplicit: true },
+        createdAt: nowIso(),
+      })
     })
     onClose()
   }

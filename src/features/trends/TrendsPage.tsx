@@ -6,12 +6,15 @@ import { eventsRange, eventsForChild } from '../../domain/repositories'
 import type { EventRecord } from '../../domain/types'
 import { downloadCsv, exportBackup, downloadJson } from '../../db/exportImport'
 import { Segmented } from '../../components/ui/Segmented'
+import { CalendarCard } from './CalendarCard'
 
 type Metric = 'sleep' | 'feed' | 'diapers' | 'milk'
+type View = 'chart' | 'calendar'
 
 export function TrendsPage() {
   const { selected } = useSelectedChild()
   const [metric, setMetric] = useState<Metric>('sleep')
+  const [view, setView] = useState<View>('chart')
 
   const weekAgo = useMemo(() => new Date(Date.now() - 6 * 86400000).toISOString(), [])
   const eventsWeek = useLiveQuery(
@@ -43,9 +46,22 @@ export function TrendsPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Trends</h1>
-      <Segmented value={metric} onChange={setMetric} options={metrics} />
+      <Segmented
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'chart', label: '📊 7 days' },
+          { value: 'calendar', label: '🗓 Calendar' },
+        ]}
+      />
 
-      <div className="card">
+      {view === 'calendar' ? (
+        <CalendarCard childId={selected.id!} />
+      ) : (
+        <>
+          <Segmented value={metric} onChange={setMetric} options={metrics} />
+
+          <div className="card">
         <ResponsiveContainer width="100%" height={260}>
           {metric === 'milk' ? (
             <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
@@ -66,7 +82,9 @@ export function TrendsPage() {
           )}
         </ResponsiveContainer>
         <p className="mt-2 text-[10px] text-muted">Last 7 days</p>
-      </div>
+          </div>
+        </>
+      )}
 
       <div className="card">
         <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted">Share with your pediatrician</h2>
