@@ -21,6 +21,7 @@ interface SyncStore {
   syncNow: () => Promise<boolean>
   leaveHousehold: () => Promise<boolean>
   deleteHousehold: () => Promise<boolean>
+  _adopt: () => Promise<void>
   _setError: (e: string | null) => void
 }
 
@@ -49,6 +50,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       error: settings.sync?.error ?? null,
       syncing: false,
     })
+    if (user && settings.sync?.status !== 'ready') await get()._adopt()
   },
 
   signUp: async (email, password, name) => {
@@ -60,6 +62,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     }
     const user = await restoreSession()
     set({ user, error: null })
+    if (user) await get()._adopt()
     return user != null
   },
 
@@ -72,6 +75,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     }
     const user = await restoreSession()
     set({ user, error: null })
+    if (user) await get()._adopt()
     return user != null
   },
 
@@ -159,6 +163,30 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       await patchSync((s) => ({ ...s, inviteCode: code, error: undefined }))
     } catch (err) {
       set({ error: msg(err) })
+    }
+  },
+
+  _adopt: async () => {
+    const token = await sessionToken()
+    if (!token) return
+    try {
+      const overview = await fetchHousehold(token)
+      await patchSync((s) => ({
+        ...s,
+        status: 'ready',
+        email: get().user?.email,
+        householdId: overview.householdId,
+        householdName: overview.name,
+        role: overview.role,
+        inviteCode: overview.inviteCode ?? undefined,
+        cursor: 0,
+        adopted: true,
+        error: undefined,
+      }))
+      if (overview.householdId) await runSync(token)
+    } catch {
+      // Account isn't a member of a household yet — leave the
+      // "Start a family household" state alone; not an error.
     }
   },
 
