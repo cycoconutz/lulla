@@ -23,12 +23,12 @@ const NAV = [
 export function AppLayoutPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const childrenCount = useLiveQuery(async () => (await listChildren()).length, [], 0)
+  const childrenCount = useLiveQuery(async () => (await listChildren()).length, [], undefined)
   const setSelectedChildId = useUIStore((s) => s.setSelectedChildId)
   const { selected } = useSelectedChild()
 
   useEffect(() => {
-    if (childrenCount === 0 && location.pathname !== '/onboarding') {
+    if (typeof childrenCount === 'number' && childrenCount === 0 && location.pathname !== '/onboarding') {
       navigate('/onboarding', { replace: true })
     }
   }, [childrenCount, location.pathname, navigate])
