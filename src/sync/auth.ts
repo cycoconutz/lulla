@@ -21,11 +21,23 @@ export async function restoreSession(): Promise<SessionUser | null> {
   return { id: u.id, email: u.email, name: u.name }
 }
 
-/** Current 15-minute JWT for the session, or null when signed out. */
+/** Current 15-minute JWT for the session, or null when signed out.
+ *
+ * Fetched directly instead of via authClient.token(): the Neon adapter's
+ * token() consults its own local session cache, which the vanilla
+ * signUp.email/signIn.email methods do not refresh — right after sign-up it
+ * returns null without hitting the network, even though getSession() sees the
+ * live session. GET /token with credentials:'include' always reflects the
+ * server-side session. */
 export async function sessionToken(): Promise<string | null> {
-  const { data, error } = await authClient.token()
-  if (error || !data?.token) return null
-  return data.token as string
+  try {
+    const res = await fetch(`${NEON_AUTH_BASE_URL}/token`, { credentials: 'include' })
+    if (!res.ok) return null
+    const body = (await res.json()) as { token?: string }
+    return body.token ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function signUpEmail(email: string, password: string, name: string): Promise<{ ok: boolean; error?: string }> {
