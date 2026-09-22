@@ -19,4 +19,4 @@ npm-debug.log*
 !.vscode/extensions.json
 .idea/
 .DS_Store
-Thumbs.db
+Thumbs.dbe2e/*.png
