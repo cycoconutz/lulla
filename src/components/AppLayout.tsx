@@ -11,7 +11,6 @@ import { syncPushSchedule } from '../domain/push'
 import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
-import { getSettings } from '../domain/repositories'
 
 const NAV = [
   { to: '/', label: 'Today', icon: '🌙' },
@@ -58,8 +57,8 @@ export function AppLayoutPage() {
   }, [pushSettings, pushChildren, pushRev])
 
   const syncReady = useLiveQuery(async () => {
-    const s = await getSettings()
-    return s.sync?.status === 'ready' && !!s.sync?.householdId
+    const s = (await db.settings.toArray())[0]
+    return s?.sync?.status === 'ready' && !!s.sync?.householdId
   }, [])
   const syncUser = useSyncStore((s) => s.user)
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSyncStore } from '../../store/syncStore'
-import { getSettings } from '../../domain/repositories'
+import { db } from '../../db/schema'
 
 type Mode = 'signin' | 'signup'
 
@@ -35,7 +35,7 @@ export function AccountCard() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const sync = useLiveQuery(async () => (await getSettings()).sync, [])
+  const sync = useLiveQuery(async () => (await db.settings.toArray())[0]?.sync, [])
 
   useEffect(() => {
     if (!booting && !user) setMode('signin')
