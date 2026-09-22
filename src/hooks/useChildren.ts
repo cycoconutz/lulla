@@ -13,13 +13,11 @@ export function useSelectedChild() {
   const selectedChildId = useUIStore((s) => s.selectedChildId)
   const setSelectedChildId = useUIStore((s) => s.setSelectedChildId)
 
+  // Pure reader: no side effects here, otherwise multiple mounted instances
+  // each wiring their own live query race each other into an update loop.
   useEffect(() => {
-    if (children.length === 0) {
-      setSelectedChildId(null)
-      return
-    }
-    const stillExists = children.some((c) => c.id === selectedChildId)
-    if (!stillExists) setSelectedChildId(children[0]!.id!)
+    const exists = children.some((c) => c.id === selectedChildId)
+    if (children.length > 0 && !exists) setSelectedChildId(children[0]!.id!)
   }, [children, selectedChildId, setSelectedChildId])
 
   const selected = children.find((c) => c.id === selectedChildId) ?? children[0] ?? null
