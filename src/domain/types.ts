@@ -85,6 +85,7 @@ export interface EventRecord {
   photoIds?: EntityId[]
   createdBy?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export interface Child {
@@ -95,6 +96,7 @@ export interface Child {
   sex: 'boy' | 'girl'
   createdAt: string
   order: number
+  updatedAt?: string
 }
 
 export interface Measurement {
@@ -105,6 +107,7 @@ export interface Measurement {
   unit: 'lb' | 'kg' | 'in' | 'cm'
   at: string
   createdAt: string
+  updatedAt?: string
 }
 
 export interface MedicalRecord {
@@ -116,6 +119,7 @@ export interface MedicalRecord {
   detail?: string
   notes?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export type ParentProfile = 'pregnancy' | 'postpartum'
@@ -138,6 +142,7 @@ export interface ParentEntry {
   payload: Record<string, unknown>
   note?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export interface Photo {
@@ -181,6 +186,32 @@ export interface Settings {
   reminders: ReminderRule[]
   wakeWindows: WakeWindowRule[]
   quietHours?: QuietHours | null
+  sync?: SyncState
+}
+
+/**
+ * Opt-in account + family sync state. Lives on the local settings row only,
+ * and is never itself synced. `cursor` is the last server rev pulled.
+ */
+export interface SyncState {
+  status: 'off' | 'ready'
+  email?: string
+  householdId?: string
+  householdName?: string
+  role?: 'owner' | 'member'
+  inviteCode?: string
+  lastSyncAt?: string
+  cursor?: number
+  adopted?: boolean
+  error?: string
+  /** Local deletions awaiting a successful push; cleared on the next sync. */
+  pendingDeletes?: { id: string; updatedAt: string }[]
+  /**
+   * Snapshots of pushed rows (`kind:id` → row) so a full push only sends rows
+   * that actually changed since the last successful sync; unchanged re-pushes
+   * would otherwise bump every row's server rev each sync.
+   */
+  snapshot?: Record<string, unknown>
 }
 
 export const VOLUME_OPTIONS = ['oz', 'ml'] as const

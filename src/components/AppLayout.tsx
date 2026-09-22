@@ -10,6 +10,8 @@ import { ActiveTimerBar } from './ActiveTimerBar'
 import { syncPushSchedule } from '../domain/push'
 import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
+import { useSyncStore } from '../store/syncStore'
+import { getSettings } from '../domain/repositories'
 
 const NAV = [
   { to: '/', label: 'Today', icon: '🌙' },
@@ -54,6 +56,31 @@ export function AppLayoutPage() {
     if (!getPushCred() || !pushSettings) return
     void syncPushSchedule(pushSettings, pushChildren)
   }, [pushSettings, pushChildren, pushRev])
+
+  const syncReady = useLiveQuery(async () => {
+    const s = await getSettings()
+    return s.sync?.status === 'ready' && !!s.sync?.householdId
+  }, [])
+  const syncUser = useSyncStore((s) => s.user)
+
+  // Auto-sync when a signed-in device is in a ready household: kick off shortly
+  // after any local data revision, and again whenever the tab regains focus.
+  useEffect(() => {
+    if (!syncReady || !syncUser) return
+    const syncNow = useSyncStore.getState().syncNow
+    let t: number | undefined
+    const schedule = () => {
+      if (t) window.clearTimeout(t)
+      t = window.setTimeout(() => { void syncNow() }, 4000)
+    }
+    schedule()
+    const onFocus = () => schedule()
+    window.addEventListener('focus', onFocus)
+    return () => {
+      if (t) window.clearTimeout(t)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [syncReady, syncUser, pushRev])
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">

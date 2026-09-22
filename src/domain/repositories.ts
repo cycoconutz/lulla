@@ -13,11 +13,28 @@ import type {
 import { dayEndIso, dayStartIso, newId, nowIso } from './time'
 
 export const recordEvent = (rec: EventRecord) =>
-  db.events.add({ ...rec, id: rec.id ?? newId() })
+  db.events.add({ ...rec, id: rec.id ?? newId(), updatedAt: nowIso() })
 
-export const updateEvent = (rec: EventRecord) => db.events.put(rec)
+export const updateEvent = (rec: EventRecord) =>
+  db.events.put({ ...rec, updatedAt: nowIso() })
 
-export const deleteEvent = (id: EntityId) => db.events.delete(id)
+export const deleteEvent = async (id: EntityId) => {
+  await recordDeleteTombstone(id)
+  return db.events.delete(id)
+}
+
+/** Keep a local tombstone for a deleted synced row so the next push deletes it server-side. */
+async function recordDeleteTombstone(id: EntityId): Promise<void> {
+  if (typeof id !== 'string') return
+  const settings = await getSettings()
+  if (!settings.sync || settings.sync.status !== 'ready') return
+  const pending = settings.sync.pendingDeletes ?? []
+  if (pending.some((d) => d.id === id)) return
+  await db.settings.put({
+    ...settings,
+    sync: { ...settings.sync, pendingDeletes: [...pending, { id, updatedAt: nowIso() }] },
+  })
+}
 
 export const eventsForChild = (childId: EntityId) =>
   db.events.where('childId').equals(childId).toArray()
@@ -68,9 +85,10 @@ export const allEventTypes = [
 export const listChildren = () => db.children.orderBy('order').toArray()
 
 export const addChild = async (child: Omit<Child, 'id' | 'createdAt'>) =>
-  db.children.add({ ...child, id: newId(), createdAt: nowIso() })
+  db.children.add({ ...child, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
 
-export const updateChild = (child: Child) => db.children.put(child)
+export const updateChild = (child: Child) =>
+  db.children.put({ ...child, updatedAt: nowIso() })
 
 export const getHousehold = async () => {
   const [row] = await db.household.toArray()
@@ -125,7 +143,7 @@ export function defaultSettings(): Settings {
 // ---- measurements ----
 
 export const addMeasurement = (m: Omit<Measurement, 'id' | 'createdAt'>) =>
-  db.measurements.add({ ...m, id: newId(), createdAt: nowIso() })
+  db.measurements.add({ ...m, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
 
 export const measurementsForKind = async (childId: EntityId, kind: Measurement['kind']) => {
   const all = await db.measurements
@@ -138,7 +156,7 @@ export const measurementsForKind = async (childId: EntityId, kind: Measurement['
 // ---- parent entries ----
 
 export const addParentEntry = (e: Omit<ParentEntry, 'id' | 'createdAt'>) =>
-  db.parentEntries.add({ ...e, id: newId(), createdAt: nowIso() })
+  db.parentEntries.add({ ...e, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
 
 export const parentEntriesFor = async (profile: ParentProfile, day = new Date()) => {
   const all = await db.parentEntries

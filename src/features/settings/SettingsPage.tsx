@@ -17,6 +17,7 @@ import { notify, scheduleRemindersForChild } from '../../domain/reminders'
 import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
+import { AccountCard } from '../account/AccountCard'
 
 const ACTIVITY_LABELS: Record<EventType, string> = {
   feeding: '🍼 Feeding',
@@ -95,6 +96,8 @@ export function SettingsPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Settings</h1>
+
+      <AccountCard />
 
       <section className="card">
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Units</h2>
@@ -303,8 +306,9 @@ export function SettingsPage() {
       <section className="card">
         <h2 className="mb-1 text-sm font-extrabold uppercase tracking-wider text-muted">About</h2>
         <p className="text-xs leading-relaxed text-muted">
-          Lulla is a local-first baby & parent tracker: your data lives in this browser, never leaves it, and there are no
-          ads, no accounts, and no trackers. It is a personal reimplementation of common baby-tracker features and is not
+          Lulla is a local-first baby & parent tracker: your data lives in this browser by default. Optional family sync
+          (find it at the top of settings) shares logs across devices via a Lulla account on Neon — sign up only if you
+          want that. No ads, no trackers. It is a personal reimplementation of common baby-tracker features and is not
           affiliated with any existing tracker app. Not medical advice.
         </p>
         <p className="mt-2 text-xs font-bold text-ink/70">Lulla v{__APP_VERSION__}</p>

@@ -227,6 +227,7 @@ function Milestones({ childId }: { childId: EntityId }) {
       startedAt: at,
       payload: { title: title.trim() },
       createdAt: nowIso(),
+      updatedAt: nowIso(),
     })
     setCustom('')
     setOpen(false)
@@ -310,6 +311,7 @@ function Health({ childId }: { childId: EntityId }) {
       detail: detail.trim() || undefined,
       notes: notes.trim() || undefined,
       createdAt: nowIso(),
+      updatedAt: nowIso(),
     })
     setName('')
     setDetail('')

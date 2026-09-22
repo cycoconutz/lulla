@@ -147,7 +147,7 @@ function Memories({ childId }: { childId: EntityId }) {
   }, [existing])
 
   const addPreset = async (t: string) => {
-    await db.events.add({ id: newId(), childId, type: 'memory', startedAt: nowIso(), payload: { title: t }, createdAt: nowIso() })
+    await db.events.add({ id: newId(), childId, type: 'memory', startedAt: nowIso(), payload: { title: t }, createdAt: nowIso(), updatedAt: nowIso() })
   }
 
   const save = async () => {
@@ -167,6 +167,7 @@ function Memories({ childId }: { childId: EntityId }) {
       note: note.trim() || undefined,
       photoIds,
       createdAt: nowIso(),
+      updatedAt: nowIso(),
     })
     setBusy(false)
     setTitle('')
