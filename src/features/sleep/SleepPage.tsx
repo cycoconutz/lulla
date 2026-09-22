@@ -4,7 +4,7 @@ import { useSelectedChild } from '../../hooks/useChildren'
 import { useNow } from '../../hooks/useNow'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import { findReopenCandidate, reopenSleep, tryMergeManualSleep } from '../../domain/sleep'
-import type { EventRecord, SleepPayload } from '../../domain/types'
+import type { EntityId, EventRecord, SleepPayload } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { windowForAge, suggestNextNap } from '../../domain/wakeWindows'
 import { ageInMonths } from '../../domain/time'
@@ -130,7 +130,7 @@ export function SleepPage() {
   )
 }
 
-function ManualSleep({ childId, defaultKind, onClose }: { childId: number; defaultKind: 'nap' | 'night'; onClose: () => void }) {
+function ManualSleep({ childId, defaultKind, onClose }: { childId: EntityId; defaultKind: 'nap' | 'night'; onClose: () => void }) {
   const [kind, setKind] = useState<'nap' | 'night'>(defaultKind)
   const [start, setStart] = useState<string>(() => new Date(Date.now() - 30 * 60000).toISOString())
   const [end, setEnd] = useState<string>(nowIso())
@@ -182,7 +182,7 @@ function ManualSleep({ childId, defaultKind, onClose }: { childId: number; defau
   )
 }
 
-function SleepList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: number) => void }) {
+function SleepList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
   if (events.length === 0) return <p className="text-sm text-muted">No completed sleep yet today.</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   const totalMin = events.reduce(

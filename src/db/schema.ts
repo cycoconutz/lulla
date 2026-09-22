@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   Child,
+  EntityId,
   EventRecord,
   Household,
   Measurement,
@@ -11,17 +12,21 @@ import type {
 } from '../domain/types'
 
 export class LullaDB extends Dexie {
-  household!: Table<Household, number>
-  children!: Table<Child, number>
-  events!: Table<EventRecord, number>
-  measurements!: Table<Measurement, number>
-  medicalRecords!: Table<MedicalRecord, number>
-  parentEntries!: Table<ParentEntry, number>
-  photos!: Table<Photo, number>
-  settings!: Table<Settings, number>
+  household!: Table<Household, EntityId>
+  children!: Table<Child, EntityId>
+  events!: Table<EventRecord, EntityId>
+  measurements!: Table<Measurement, EntityId>
+  medicalRecords!: Table<MedicalRecord, EntityId>
+  parentEntries!: Table<ParentEntry, EntityId>
+  photos!: Table<Photo, EntityId>
+  settings!: Table<Settings, EntityId>
 
   constructor() {
     super('lulla')
+    // Identifiers: `++id` auto-increment stays untouched. Rows created before
+    // the uuid migration hold numeric ids; rows created after hold client-side
+    // uuid strings (Dexie accepts explicit values for an auto-incremented key
+    // path). Both coexist — no schema change or version bump is needed.
     this.version(1).stores({
       household: '++id, name',
       children: '++id, order',

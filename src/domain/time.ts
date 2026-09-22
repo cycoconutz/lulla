@@ -89,3 +89,13 @@ export function ageInMonths(birthDate: string, at = new Date()): number {
 export function uid(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
+
+/** RFC 4122 v4 uuid used as the primary key for records created after the uuid migration. */
+export function newId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}

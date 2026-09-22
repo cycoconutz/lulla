@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
-import { nowIso, formatTime } from '../../domain/time'
+import type { EntityId } from '../../domain/types'
+import { nowIso, formatTime, newId } from '../../domain/time'
 import { db } from '../../db/schema'
 import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
@@ -33,7 +34,7 @@ export function RoutinesPage() {
   )
 }
 
-function Routines({ childId }: { childId: number }) {
+function Routines({ childId }: { childId: EntityId }) {
   const [custom, setCustom] = useState('')
   const [open, setOpen] = useState(false)
   const eventsToday = useLiveQuery(() => eventsOnDay(childId), [childId], [])
@@ -119,7 +120,7 @@ function Routines({ childId }: { childId: number }) {
 
 const MEMORY_PRESETS = ['First smile', 'First laugh', 'First tooth', 'First word', 'First steps', 'First solid meal']
 
-function Memories({ childId }: { childId: number }) {
+function Memories({ childId }: { childId: EntityId }) {
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [at, setAt] = useState<string>(nowIso())
@@ -136,9 +137,9 @@ function Memories({ childId }: { childId: number }) {
   const photoUrls = useLiveQuery(async () => {
     const mems = existing ?? []
     const ids = mems.flatMap((m) => m.photoIds ?? [])
-    if (ids.length === 0) return new Map<number, string>()
+    if (ids.length === 0) return new Map<EntityId, string>()
     const photos = await db.photos.bulkGet(ids)
-    const map = new Map<number, string>()
+    const map = new Map<EntityId, string>()
     for (const p of photos) {
       if (p?.id) map.set(p.id, URL.createObjectURL(p.blob))
     }
@@ -146,18 +147,19 @@ function Memories({ childId }: { childId: number }) {
   }, [existing])
 
   const addPreset = async (t: string) => {
-    await db.events.add({ childId, type: 'memory', startedAt: nowIso(), payload: { title: t }, createdAt: nowIso() })
+    await db.events.add({ id: newId(), childId, type: 'memory', startedAt: nowIso(), payload: { title: t }, createdAt: nowIso() })
   }
 
   const save = async () => {
     if (!title.trim()) return
     setBusy(true)
-    let photoIds: number[] | undefined
+    let photoIds: EntityId[] | undefined
     if (photoData) {
-      const id = await db.photos.add({ blob: photoData, at: nowIso() })
+      const id = await db.photos.add({ id: newId(), blob: photoData, at: nowIso() })
       photoIds = [id]
     }
     await db.events.add({
+      id: newId(),
       childId,
       type: 'memory',
       startedAt: at,

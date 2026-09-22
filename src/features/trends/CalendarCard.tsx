@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { eventsRange } from '../../domain/repositories'
 import { buildCalendarDays, localDateKey, monthRangeIso } from '../../domain/calendar'
+import type { EntityId } from '../../domain/types'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const MAX_SHADE_MIN = 840
@@ -14,7 +15,7 @@ const fmtH = (min: number) => {
   return `${m}m`
 }
 
-export function CalendarCard({ childId }: { childId: number }) {
+export function CalendarCard({ childId }: { childId: EntityId }) {
   const [anchor, setAnchor] = useState(() => new Date())
   const now = useMemo(() => new Date(), [])
   const todayKey = useMemo(() => localDateKey(now), [now])

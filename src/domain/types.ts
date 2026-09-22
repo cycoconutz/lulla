@@ -1,3 +1,11 @@
+/**
+ * Primary key for a stored record. Legacy rows created before the uuid
+ * migration have numeric auto-increment ids; records created after have
+ * client-generated uuid strings. Both live in the same `++id` store, so every
+ * id-typed field must accept either.
+ */
+export type EntityId = number | string
+
 export type EventType =
   | 'feeding'
   | 'sleep'
@@ -67,20 +75,20 @@ export type EventPayload =
   | MemoryPayload
 
 export interface EventRecord {
-  id?: number
-  childId: number
+  id?: EntityId
+  childId: EntityId
   type: EventType
   startedAt: string
   endedAt?: string
   payload: EventPayload
   note?: string
-  photoIds?: number[]
+  photoIds?: EntityId[]
   createdBy?: string
   createdAt: string
 }
 
 export interface Child {
-  id?: number
+  id?: EntityId
   name: string
   birthDate: string
   avatarColor: string
@@ -90,8 +98,8 @@ export interface Child {
 }
 
 export interface Measurement {
-  id?: number
-  childId: number
+  id?: EntityId
+  childId: EntityId
   kind: 'weight' | 'height' | 'head'
   value: number
   unit: 'lb' | 'kg' | 'in' | 'cm'
@@ -100,8 +108,8 @@ export interface Measurement {
 }
 
 export interface MedicalRecord {
-  id?: number
-  childId: number
+  id?: EntityId
+  childId: EntityId
   kind: 'record' | 'vaccine' | 'medication'
   date: string
   title: string
@@ -113,7 +121,7 @@ export interface MedicalRecord {
 export type ParentProfile = 'pregnancy' | 'postpartum'
 
 export interface ParentEntry {
-  id?: number
+  id?: EntityId
   profile: ParentProfile
   kind:
     | 'weight'
@@ -133,13 +141,13 @@ export interface ParentEntry {
 }
 
 export interface Photo {
-  id?: number
+  id?: EntityId
   blob: Blob
   at: string
 }
 
 export interface Household {
-  id?: number
+  id?: EntityId
   name: string
   caregivers: string[]
   createdAt: string
@@ -166,7 +174,7 @@ export interface WakeWindowRule {
 }
 
 export interface Settings {
-  id?: number
+  id?: EntityId
   unitsVolume: 'oz' | 'ml'
   unitsWeight: 'lb' | 'kg'
   enabledActivities: EventType[]

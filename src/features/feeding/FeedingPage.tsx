@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
-import type { EventRecord, FeedingPayload } from '../../domain/types'
+import type { EntityId, EventRecord, FeedingPayload } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { useUIStore } from '../../store/ui'
 import { Segmented } from '../../components/ui/Segmented'
@@ -138,7 +138,7 @@ function StopTimerButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-function BottleLog({ childId }: { childId: number }) {
+function BottleLog({ childId }: { childId: EntityId }) {
   const [open, setOpen] = useState(false)
   const [milk, setMilk] = useState<'formula' | 'breastmilk' | 'other'>('formula')
   const [amount, setAmount] = useState(3)
@@ -179,7 +179,7 @@ function BottleLog({ childId }: { childId: number }) {
   )
 }
 
-function PumpLog({ childId, activeSide, onStop }: { childId: number; activeSide: 'left' | 'right' | null; onStop: () => void }) {
+function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSide: 'left' | 'right' | null; onStop: () => void }) {
   const [open, setOpen] = useState(false)
   const [side, setSide] = useState<'left' | 'right' | 'both'>('left')
   const [amount, setAmount] = useState(2)
@@ -252,7 +252,7 @@ function PumpLog({ childId, activeSide, onStop }: { childId: number; activeSide:
   )
 }
 
-function SolidsLog({ childId }: { childId: number }) {
+function SolidsLog({ childId }: { childId: EntityId }) {
   const [selected, setSelected] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const [at, setAt] = useState<string>(nowIso())
@@ -303,7 +303,7 @@ function SolidsLog({ childId }: { childId: number }) {
   )
 }
 
-function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: number) => void }) {
+function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
   if (events.length === 0) {
     return <p className="text-sm text-muted">Nothing logged yet today.</p>
   }

@@ -57,9 +57,12 @@ export function OnboardingPage() {
       </div>
 
       <div className="card mb-4">
-        <h2 className="mb-3 text-lg font-extrabold">
-          {existing ? 'Add a child' : 'Meet your little one 🐣'}
+        <h2 className="mb-1 text-lg font-extrabold">
+          {existing ? 'Add a child' : 'First, add a child 🐣'}
         </h2>
+        <p className="mb-3 text-xs text-muted">
+          Lulla needs at least one child in your family before you can start tracking.
+        </p>
         <div className="space-y-3">
           <input
             value={name}
@@ -122,9 +125,19 @@ export function OnboardingPage() {
         </div>
       )}
 
-      <button onClick={() => void finish()} className="btn-gold w-full py-4 text-base">
+      <button
+        onClick={() => void finish()}
+        disabled={!existing}
+        className={`w-full py-4 text-base ${existing ? 'btn-gold' : 'cursor-not-allowed opacity-40'} `}
+      >
         {existing ? 'Done — open Lulla' : 'Start tracking'}
       </button>
+
+      {!existing && (
+        <p className="mt-2 text-center text-xs font-bold text-rose-deep">
+          Add a child above first — then you can open Lulla.
+        </p>
+      )}
 
       <p className="mt-6 text-center text-[11px] leading-relaxed text-muted">
         All data stays on this device. No accounts, no ads, no tracking.

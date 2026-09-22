@@ -1,13 +1,13 @@
 import { create } from 'zustand'
-import type { EventRecord, EventPayload } from '../domain/types'
+import type { EntityId, EventRecord, EventPayload } from '../domain/types'
 import { eventsForChild, updateEvent } from '../domain/repositories'
 import { nowIso } from '../domain/time'
 
 interface UIState {
-  selectedChildId: number | null
-  setSelectedChildId: (id: number | null) => void
+  selectedChildId: EntityId | null
+  setSelectedChildId: (id: EntityId | null) => void
   activeTimers: EventRecord[]
-  loadActiveTimers: (childId: number) => Promise<void>
+  loadActiveTimers: (childId: EntityId) => Promise<void>
   stopTimer: (e: EventRecord) => Promise<void>
 }
 

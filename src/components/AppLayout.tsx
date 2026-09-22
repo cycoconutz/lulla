@@ -45,11 +45,10 @@ export function AppLayoutPage() {
 
   const pushSettings = useLiveQuery(async () => (await db.settings.toArray())[0], [], undefined)
   const pushChildren = useLiveQuery(listChildren, [], [])
-  const pushRev = useLiveQuery(
-    async () => (await db.events.orderBy('id').reverse().limit(1).first())?.id ?? 0,
-    [],
-    0,
-  )
+  // Event count as a monotonic rev marker. IndexedDB sorts number keys before
+  // string keys within a mixed `++id` store, so `orderBy('id').reverse()` can
+  // no longer be used to detect "latest event".
+  const pushRev = useLiveQuery(async () => db.events.count(), [], 0)
 
   useEffect(() => {
     if (!getPushCred() || !pushSettings) return

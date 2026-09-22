@@ -1,6 +1,7 @@
 import { db } from '../db/schema'
 import type {
   Child,
+  EntityId,
   EventRecord,
   EventType,
   FeedingPayload,
@@ -9,18 +10,19 @@ import type {
   ParentProfile,
   Settings,
 } from './types'
-import { dayEndIso, dayStartIso, nowIso } from './time'
+import { dayEndIso, dayStartIso, newId, nowIso } from './time'
 
-export const recordEvent = (rec: EventRecord) => db.events.add(rec)
+export const recordEvent = (rec: EventRecord) =>
+  db.events.add({ ...rec, id: rec.id ?? newId() })
 
 export const updateEvent = (rec: EventRecord) => db.events.put(rec)
 
-export const deleteEvent = (id: number) => db.events.delete(id)
+export const deleteEvent = (id: EntityId) => db.events.delete(id)
 
-export const eventsForChild = (childId: number) =>
+export const eventsForChild = (childId: EntityId) =>
   db.events.where('childId').equals(childId).toArray()
 
-export const eventsOnDay = async (childId: number, day = new Date()): Promise<EventRecord[]> => {
+export const eventsOnDay = async (childId: EntityId, day = new Date()): Promise<EventRecord[]> => {
   const all = await db.events
     .where('[childId+startedAt]')
     .between([childId, dayStartIso(day)], [childId, dayEndIso(day)])
@@ -29,7 +31,7 @@ export const eventsOnDay = async (childId: number, day = new Date()): Promise<Ev
 }
 
 export const eventsRange = async (
-  childId: number,
+  childId: EntityId,
   from: string,
   to: string,
 ): Promise<EventRecord[]> => {
@@ -41,7 +43,7 @@ export const eventsRange = async (
 }
 
 export const latestEventOfTypes = async (
-  childId: number,
+  childId: EntityId,
   types: EventType[],
 ): Promise<EventRecord | undefined> => {
   const all = await eventsForChild(childId)
@@ -66,7 +68,7 @@ export const allEventTypes = [
 export const listChildren = () => db.children.orderBy('order').toArray()
 
 export const addChild = async (child: Omit<Child, 'id' | 'createdAt'>) =>
-  db.children.add({ ...child, createdAt: nowIso() })
+  db.children.add({ ...child, id: newId(), createdAt: nowIso() })
 
 export const updateChild = (child: Child) => db.children.put(child)
 
@@ -81,7 +83,7 @@ export const upsertHousehold = async (h: { name: string; caregivers: string[] })
     await db.household.update(existing.id!, h)
     return existing.id!
   }
-  return db.household.add({ ...h, createdAt: nowIso() })
+  return db.household.add({ ...h, id: newId(), createdAt: nowIso() })
 }
 
 // ---- settings ----
@@ -98,6 +100,7 @@ export const saveSettings = (s: Settings) => db.settings.put(s)
 
 export function defaultSettings(): Settings {
   return {
+    id: newId(),
     unitsVolume: 'oz',
     unitsWeight: 'lb',
     enabledActivities: [...allEventTypes],
@@ -122,9 +125,9 @@ export function defaultSettings(): Settings {
 // ---- measurements ----
 
 export const addMeasurement = (m: Omit<Measurement, 'id' | 'createdAt'>) =>
-  db.measurements.add({ ...m, createdAt: nowIso() })
+  db.measurements.add({ ...m, id: newId(), createdAt: nowIso() })
 
-export const measurementsForKind = async (childId: number, kind: Measurement['kind']) => {
+export const measurementsForKind = async (childId: EntityId, kind: Measurement['kind']) => {
   const all = await db.measurements
     .where('[childId+kind+at]')
     .between([childId, kind, ''], [childId, kind, '\uffff'])
@@ -135,7 +138,7 @@ export const measurementsForKind = async (childId: number, kind: Measurement['ki
 // ---- parent entries ----
 
 export const addParentEntry = (e: Omit<ParentEntry, 'id' | 'createdAt'>) =>
-  db.parentEntries.add({ ...e, createdAt: nowIso() })
+  db.parentEntries.add({ ...e, id: newId(), createdAt: nowIso() })
 
 export const parentEntriesFor = async (profile: ParentProfile, day = new Date()) => {
   const all = await db.parentEntries

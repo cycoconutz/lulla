@@ -1,4 +1,4 @@
-import type { EventType, ReminderRule, Settings } from './types'
+import type { EntityId, EventType, ReminderRule, Settings } from './types'
 import { latestEventOfTypes } from './repositories'
 import { getPushCred } from './pushCred'
 
@@ -28,7 +28,7 @@ export function notify(title: string, body: string): void {
 
 export async function scheduleRemindersForChild(
   settings: Settings | undefined,
-  childId: number | undefined,
+  childId: EntityId | undefined,
 ): Promise<void> {
   cancelReminders()
   if (!settings || childId == null) return
@@ -53,7 +53,7 @@ export async function scheduleRemindersForChild(
   }
 }
 
-function scheduleOne(rule: ReminderRule, type: EventType, childId: number): void {
+function scheduleOne(rule: ReminderRule, type: EventType, childId: EntityId): void {
   void (async () => {
     const last = await latestEventOfTypes(childId, [type])
     const base = (last ? new Date(last.startedAt).getTime() : Date.now()) + rule.intervalHours * 3600000

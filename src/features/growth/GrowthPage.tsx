@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { measurementsForKind, addMeasurement } from '../../domain/repositories'
-import type { Measurement } from '../../domain/types'
+import type { EntityId, Measurement } from '../../domain/types'
 import {
   referenceSeries,
   percentileLabel,
@@ -11,7 +11,7 @@ import {
   type GrowthKind,
 } from '../../domain/growth'
 import { db } from '../../db/schema'
-import { nowIso, ageInMonths } from '../../domain/time'
+import { nowIso, ageInMonths, newId } from '../../domain/time'
 import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
@@ -66,7 +66,7 @@ export function GrowthPage() {
 type RefRow = { months: number; p3: number; p50: number; p97: number; value?: number | null }
 type UserRow = { months: number; p3: number | null; p50: number | null; p97: number | null; value: number }
 
-function GrowthCharts({ childId, sex, birthDate }: { childId: number; sex: 'boy' | 'girl'; birthDate: string }) {
+function GrowthCharts({ childId, sex, birthDate }: { childId: EntityId; sex: 'boy' | 'girl'; birthDate: string }) {
   const [kind, setKind] = useState<GrowthKind>('weight')
   const [open, setOpen] = useState(false)
 
@@ -160,7 +160,7 @@ function GrowthCharts({ childId, sex, birthDate }: { childId: number; sex: 'boy'
   )
 }
 
-function AddMeasurement({ childId, kind, onClose }: { childId: number; kind: GrowthKind; onClose: () => void }) {
+function AddMeasurement({ childId, kind, onClose }: { childId: EntityId; kind: GrowthKind; onClose: () => void }) {
   const isWeight = kind === 'weight'
   const [value, setValue] = useState(isWeight ? 8 : 60)
   const step = isWeight ? 0.1 : 0.5
@@ -189,7 +189,7 @@ function AddMeasurement({ childId, kind, onClose }: { childId: number; kind: Gro
   )
 }
 
-function MeasurementList({ childId, kind }: { childId: number; kind: GrowthKind }) {
+function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKind }) {
   const ms = useLiveQuery(() => measurementsForKind(childId, kind), [childId, kind], [])
   const all = ms ?? []
   if (all.length === 0) return <p className="text-sm text-muted">No {kind} measurements yet.</p>
@@ -208,7 +208,7 @@ function MeasurementList({ childId, kind }: { childId: number; kind: GrowthKind 
   )
 }
 
-function Milestones({ childId }: { childId: number }) {
+function Milestones({ childId }: { childId: EntityId }) {
   const [open, setOpen] = useState(false)
   const [custom, setCustom] = useState('')
   const [at, setAt] = useState<string>(nowIso())
@@ -221,6 +221,7 @@ function Milestones({ childId }: { childId: number }) {
   const add = (title: string) => {
     if (!title.trim()) return
     void db.events.add({
+      id: newId(),
       childId,
       type: 'milestone',
       startedAt: at,
@@ -282,7 +283,7 @@ function Milestones({ childId }: { childId: number }) {
   )
 }
 
-function Health({ childId }: { childId: number }) {
+function Health({ childId }: { childId: EntityId }) {
   const [kind, setKind] = useState<'vaccine' | 'medication' | 'record'>('vaccine')
   const [name, setName] = useState('')
   const [detail, setDetail] = useState('')
@@ -301,6 +302,7 @@ function Health({ childId }: { childId: number }) {
   const save = () => {
     if (!name.trim()) return
     void db.medicalRecords.add({
+      id: newId(),
       childId,
       kind,
       date,

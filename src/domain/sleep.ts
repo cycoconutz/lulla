@@ -1,5 +1,5 @@
 import { deleteEvent, eventsForChild, updateEvent } from './repositories'
-import type { EventRecord, SleepPayload } from './types'
+import type { EntityId, EventRecord, SleepPayload } from './types'
 
 export const SLEEP_MERGE_WINDOW_MS = 5 * 60_000
 
@@ -49,7 +49,7 @@ export async function reopenSleep(rec: EventRecord): Promise<void> {
 
 /** Find the previous sleep that ended within the merge window of `newStartAt`. */
 export async function findReopenCandidate(
-  childId: number,
+  childId: EntityId,
   newStartAt: string,
   kind: 'nap' | 'night',
 ): Promise<(EventRecord & { endedAt: string }) | undefined> {
@@ -63,8 +63,8 @@ export async function findReopenCandidate(
  * end, then delete the new record. Returns true when merged.
  */
 export async function tryMergeManualSleep(
-  childId: number,
-  next: EventRecord & { id: number },
+  childId: EntityId,
+  next: EventRecord & { id: EntityId },
 ): Promise<boolean> {
   const kind = (next.payload as SleepPayload).kind
   const prev = await findReopenCandidate(childId, next.startedAt, kind)

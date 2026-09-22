@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
-import type { DiaperPayload, EventRecord } from '../../domain/types'
+import type { DiaperPayload, EntityId, EventRecord } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
@@ -64,7 +64,7 @@ export function DiapersPage() {
   )
 }
 
-function DetailedDiaper({ childId, onClose }: { childId?: number; onClose: () => void }) {
+function DetailedDiaper({ childId, onClose }: { childId?: EntityId; onClose: () => void }) {
   const [status, setStatus] = useState<DiaperPayload['status']>('dirty')
   const [rash, setRash] = useState(false)
   const [consistency, setConsistency] = useState<DiaperPayload['consistency']>('normal')
@@ -106,7 +106,7 @@ function DetailedDiaper({ childId, onClose }: { childId?: number; onClose: () =>
   )
 }
 
-function DiaperList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: number) => void }) {
+function DiaperList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
   if (events.length === 0) return <p className="text-sm text-muted">No diapers logged yet today.</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   return (
