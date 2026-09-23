@@ -11,6 +11,7 @@ import { syncPushSchedule } from '../domain/push'
 import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
+import { openSyncEvents } from '../sync/live'
 
 const NAV = [
   { to: '/', label: 'Today', icon: '🌙' },
@@ -80,11 +81,13 @@ export function AppLayoutPage() {
       if (document.visibilityState === 'visible') schedule()
     }
     const poll = window.setInterval(() => { void syncNow() }, 15000)
+    const offLiveSync = openSyncEvents(() => { void syncNow() })
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       if (t) window.clearTimeout(t)
       window.clearInterval(poll)
+      offLiveSync()
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
     }

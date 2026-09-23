@@ -44,17 +44,23 @@ const app = new Hono();
 
 app.use("*", cors());
 
-// Verify the bearer JWT; returns the user id or null.
-async function bearerUserId(req: { header: (name: string) => string | undefined }): Promise<string | null> {
-  const auth = req.header("authorization");
-  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
+// Verify a JWT; returns the user id or null.
+async function userIdFromToken(token: string | null | undefined): Promise<string | null> {
+  if (!token) return null;
   try {
-    const { payload } = await jwtVerify(auth.slice(7), jwks, { issuer });
+    const { payload } = await jwtVerify(token, jwks, { issuer });
     if (typeof payload.sub !== "string" || !payload.sub) return null;
     return payload.sub;
   } catch {
     return null;
   }
+}
+
+// Verify the bearer JWT; returns the user id or null.
+async function bearerUserId(req: { header: (name: string) => string | undefined }): Promise<string | null> {
+  const auth = req.header("authorization");
+  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
+  return userIdFromToken(auth.slice(7));
 }
 
 // Create a household owned by the caller, becoming its first member.
@@ -373,6 +379,60 @@ app.get("/pull", async (c) => {
   );
 
   return c.json({ cursor, changes });
+});
+
+const ENCODER = new TextEncoder();
+const SSE_POLL_MS = 3000;
+
+// Long-lived SSE stream: emits `data: <rev>` whenever the household's highest
+// rev advances past the `after` cursor, plus a `: ping` comment heartbeat so
+// proxies don't drop the idle connection. Client reconnects with EventSource's
+// built-in retry, so revs missed while disconnected are picked up on reopen.
+app.get("/events", async (c) => {
+  const userId = await userIdFromToken(c.req.query("token"));
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+  const member = await memberFor(userId);
+  if (!member) return c.json({ error: "not a member" }, 403);
+
+  const raw = c.req.query("after") ?? "0";
+  const after = /^\d+$/.test(raw) ? Number(raw) : 0;
+  let sentRev = after;
+
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const poll = async () => {
+        try {
+          const { rows } = await pool.query(
+            `SELECT max(rev) AS rev FROM lulla.sync_records WHERE household_id = $1`,
+            [member.household_id],
+          );
+          const maxRev = Number((rows[0] as { rev: string | null })?.rev ?? 0);
+          if (maxRev > sentRev) {
+            sentRev = maxRev;
+            controller.enqueue(ENCODER.encode(`data: ${maxRev}\n\n`));
+          } else {
+            controller.enqueue(ENCODER.encode(": ping\n\n"));
+          }
+        } catch {
+          controller.enqueue(ENCODER.encode(": ping\n\n"));
+        }
+      };
+      void poll();
+      timer = setInterval(poll, SSE_POLL_MS);
+    },
+    cancel() {
+      if (timer) clearInterval(timer);
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+    },
+  });
 });
 
 async function nextRev(client: { query: (sql: string, params?: unknown[]) => Promise<{ rows: { nextval: string }[] }> }): Promise<string> {
