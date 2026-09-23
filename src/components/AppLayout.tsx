@@ -150,7 +150,9 @@ export function AppLayoutPage() {
 
         <main className="relative flex-1 px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-12">
           <ActiveTimerBar />
-          <Outlet />
+          <div key={location.pathname} className="animate-page-in motion-reduce:animate-none">
+            <Outlet />
+          </div>
         </main>
       </div>
 

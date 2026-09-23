@@ -12,6 +12,19 @@
   --color-rose: #e8b4a0;
   --color-rose-deep: #c98d74;
   --font-sans: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --animate-page-in: page-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
