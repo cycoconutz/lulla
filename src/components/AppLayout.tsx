@@ -61,6 +61,7 @@ export function AppLayoutPage() {
     return s?.sync?.status === 'ready' && !!s.sync?.householdId
   }, [])
   const syncUser = useSyncStore((s) => s.user)
+  const signOut = useSyncStore((s) => s.signOut)
 
   // Auto-sync when a signed-in device is in a ready household: kick off shortly
   // after any local data revision, and again whenever the tab regains focus.
@@ -90,13 +91,27 @@ export function AppLayoutPage() {
             <span className="text-lg font-extrabold tracking-tight">lulla</span>
             {selected && <span className="text-muted text-xs">· {selected.name}</span>}
           </div>
-          <button
-            onClick={() => navigate('/settings')}
-            aria-label="Settings"
-            className="rounded-xl p-2 text-muted transition hover:bg-sand active:scale-95"
-          >
-            ⚙️
-          </button>
+          <div className="flex items-center gap-1">
+            {syncUser && (
+              <button
+                onClick={() => {
+                  void signOut()
+                  navigate('/')
+                }}
+                aria-label="Sign out"
+                className="rounded-xl px-2 py-2 text-xs font-bold text-muted transition hover:bg-sand active:scale-95"
+              >
+                Sign out
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/settings')}
+              aria-label="Settings"
+              className="rounded-xl p-2 text-muted transition hover:bg-sand active:scale-95"
+            >
+              ⚙️
+            </button>
+          </div>
         </div>
         <ChildSwitcher />
       </header>
