@@ -148,7 +148,7 @@ export function AppLayoutPage() {
           <ChildSwitcher />
         </header>
 
-        <main className="relative flex-1 px-4 pb-[calc(11rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-12">
+        <main className="relative flex-1 px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-12">
           <ActiveTimerBar />
           <Outlet />
         </main>
@@ -171,19 +171,6 @@ export function AppLayoutPage() {
               </NavLink>
             </div>
           ))}
-          <div className="relative">
-            <NavLink
-              to="/mom"
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold transition ${
-                  isActive ? 'bg-gold/15 text-gold-deep' : 'text-muted hover:bg-sand'
-                }`
-              }
-            >
-              <Heart className="h-6 w-6" aria-hidden />
-              Mom
-            </NavLink>
-          </div>
         </div>
         <div className="grid grid-cols-5 gap-1 px-2 pb-[calc(env(safe-area-inset-bottom))]">
           {NAV.slice(5).map((item) => (

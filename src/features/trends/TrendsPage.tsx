@@ -71,13 +71,23 @@ export function TrendsPage() {
               <Tooltip />
               <Line type="monotone" dataKey="milkOz" stroke="#c98d74" strokeWidth={3} dot={{ r: 4 }} name="oz" />
             </LineChart>
+          ) : metric === 'sleep' ? (
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+              <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8b7f6f' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#8b7f6f' }} domain={[0, 24]} />
+              <Tooltip />
+              <Bar dataKey="sleepHrs" stackId="day" fill="#d9a441" name="Sleep (hrs)" />
+              <Bar dataKey="feedHrs" stackId="day" fill="#c98d74" name="Feed (hrs)" />
+              <Bar dataKey="awakeHrs" stackId="day" fill="#efe4cf" radius={[6, 6, 0, 0]} name="Awake (hrs)" />
+            </BarChart>
           ) : (
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
               <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8b7f6f' }} />
               <YAxis tick={{ fontSize: 11, fill: '#8b7f6f' }} />
               <Tooltip />
-              <Bar dataKey={metric === 'sleep' ? 'sleepHrs' : metric === 'feed' ? 'feeds' : 'diapers'} fill="#d9a441" radius={[6, 6, 0, 0]} name={metric === 'sleep' ? 'hours' : 'count'} />
+              <Bar dataKey={metric === 'feed' ? 'feeds' : 'diapers'} fill="#d9a441" radius={[6, 6, 0, 0]} name="count" />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -107,10 +117,14 @@ interface DayRow {
   label: string
   date: string
   sleepHrs: number
+  feedHrs: number
+  awakeHrs: number
   feeds: number
   diapers: number
   milkOz: number
 }
+
+const DAY_HOURS = 24
 
 function buildDaily(events: EventRecord[], _birthDate: string): DayRow[] {
   const days: DayRow[] = []
@@ -120,6 +134,8 @@ function buildDaily(events: EventRecord[], _birthDate: string): DayRow[] {
       label: d.toLocaleDateString([], { weekday: 'short' }),
       date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       sleepHrs: 0,
+      feedHrs: 0,
+      awakeHrs: 0,
       feeds: 0,
       diapers: 0,
       milkOz: 0,
@@ -134,6 +150,9 @@ function buildDaily(events: EventRecord[], _birthDate: string): DayRow[] {
       row.sleepHrs += (new Date(e.endedAt).getTime() - new Date(e.startedAt).getTime()) / 3600000
     } else if (e.type === 'feeding') {
       row.feeds += 1
+      if (e.endedAt) {
+        row.feedHrs += (new Date(e.endedAt).getTime() - new Date(e.startedAt).getTime()) / 3600000
+      }
       const p = e.payload as { kind: string; amount?: number; unit?: 'oz' | 'ml' }
       if ((p.kind === 'bottle' || p.kind === 'pump') && p.amount && p.unit) {
         row.milkOz += p.unit === 'ml' ? p.amount / 29.57 : p.amount
@@ -142,6 +161,10 @@ function buildDaily(events: EventRecord[], _birthDate: string): DayRow[] {
       row.diapers += 1
     }
   }
-  for (const d of days) d.sleepHrs = +d.sleepHrs.toFixed(1)
+  for (const d of days) {
+    d.sleepHrs = +d.sleepHrs.toFixed(1)
+    d.feedHrs = +d.feedHrs.toFixed(1)
+    d.awakeHrs = +Math.max(0, DAY_HOURS - d.sleepHrs - d.feedHrs).toFixed(1)
+  }
   return days
 }
