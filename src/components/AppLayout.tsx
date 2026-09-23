@@ -64,7 +64,8 @@ export function AppLayoutPage() {
   const signOut = useSyncStore((s) => s.signOut)
 
   // Auto-sync when a signed-in device is in a ready household: kick off shortly
-  // after any local data revision, and again whenever the tab regains focus.
+  // after any local data revision, whenever the tab regains focus, and on a fixed
+  // interval so changes made on other devices show up without user action.
   useEffect(() => {
     if (!syncReady || !syncUser) return
     const syncNow = useSyncStore.getState().syncNow
@@ -75,10 +76,17 @@ export function AppLayoutPage() {
     }
     schedule()
     const onFocus = () => schedule()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') schedule()
+    }
+    const poll = window.setInterval(() => { void syncNow() }, 15000)
     window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
       if (t) window.clearTimeout(t)
+      window.clearInterval(poll)
       window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [syncReady, syncUser, pushRev])
 
@@ -116,7 +124,7 @@ export function AppLayoutPage() {
         <ChildSwitcher />
       </header>
 
-      <main className="relative flex-1 px-4 pb-32 pt-4">
+      <main className="relative flex-1 px-4 pb-[calc(11rem+env(safe-area-inset-bottom))] pt-4">
         <ActiveTimerBar />
         <Outlet />
       </main>
