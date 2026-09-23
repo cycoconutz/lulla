@@ -156,11 +156,58 @@ async function applyChange(ch: SyncChange): Promise<void> {
     return
   }
   const incoming = ch.data as AnyRow
+  if (ch.kind === 'children') await absorbDuplicateChild(incoming, ch.id as string)
   const local = (await table.get(ch.id as string).catch(() => undefined)) as AnyRow | undefined
   const localAt = local?.updatedAt ?? ''
   const incomingAt = typeof incoming.updatedAt === 'string' ? incoming.updatedAt : ''
   if (local && localAt > incomingAt) return // local edit is newer
   await table.put({ ...incoming, id: ch.id })
+}
+
+/**
+ * Merge-on-pull: if a pulled child matches an existing LOCAL child with a
+ * different id (same name, and birth date when both sides have one), the local
+ * row is a duplicate entry for the same child created on this device before it
+ * joined the family. Adopt the pulled (household-canonical) id: re-point every
+ * child-scoped record to it and drop the local duplicate, so tracking merges
+ * under one child instead of creating clones.
+ */
+async function absorbDuplicateChild(incoming: AnyRow, incomingId: string): Promise<void> {
+  const clone = await findDuplicateChild(incoming)
+  if (!clone || typeof clone.id !== 'string' || clone.id === incomingId) return
+  const from = clone.id
+  const remap = async (table: Table<unknown, EntityId>) => {
+    const rows = (await table.where('childId').equals(from).toArray().catch(() => [])) as AnyRow[]
+    for (const row of rows) await table.put({ ...row, childId: incomingId })
+  }
+  await db.transaction('rw', db.children, db.events, db.measurements, db.medicalRecords, async () => {
+    await remap(TABLES.events)
+    await remap(TABLES.measurements)
+    await remap(TABLES.medical)
+    await db.children.delete(from)
+  })
+}
+
+function normalizeName(name: unknown): string {
+  return String(name ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+/** The single local child that looks like `incoming` but lives under another id. */
+async function findDuplicateChild(incoming: AnyRow): Promise<AnyRow | undefined> {
+  const name = normalizeName(incoming.name)
+  if (!name) return undefined
+  const incomingBirth = typeof incoming.birthDate === 'string' ? incoming.birthDate : ''
+  const children = (await db.children.toArray()) as unknown as AnyRow[]
+  const matches = children.filter((c) => {
+    if (!c.name || c.id === incoming.id) return false
+    if (normalizeName(c.name) !== name) return false
+    const cBirth = typeof c.birthDate === 'string' ? c.birthDate : ''
+    // Same name but different known birth dates ⇒ different children (e.g. siblings).
+    return !(incomingBirth && cBirth && incomingBirth !== cBirth)
+  })
+  return matches.length === 1 ? matches[0] : undefined
 }
 
 export interface SyncResult {
@@ -169,7 +216,13 @@ export interface SyncResult {
   cursor?: number
 }
 
-/** One complete sync: adopt (once) → push full state → pull + apply. */
+/**
+ * One complete sync: adopt (once) → pull + apply (merging duplicate children
+ * locally) → push only rows that are genuinely new/changed on this device.
+ * Pull runs first so a child added on this device that is really the same kid as
+ * a household child is folded into the household id before anything about the
+ * local dup id is pushed — no clones, no extra server rows.
+ */
 export async function runSync(token: string): Promise<SyncResult> {
   await adoptForSync()
   const settings = await getSettings()
@@ -178,8 +231,19 @@ export async function runSync(token: string): Promise<SyncResult> {
     return { ok: false, error: 'Family sync is not set up yet.' }
   }
   try {
-    await pushLocalState(token, sync)
-    const cursor = await pullAndApply(token, sync.cursor ?? 0)
+    const { cursor, changes } = await pullChanges(token, sync.cursor ?? 0)
+    // Fold the pulled changes into the push baseline: they are server truth, so
+    // they must not be re-pushed as local edits (avoids rev churn), while the
+    // device's own rows — including any re-pointed after a child merge — stay
+    // visible to the diff and get pushed.
+    const pushSnapshot = { ...(sync.snapshot ?? {}) }
+    for (const ch of changes) {
+      await applyChange(ch)
+      const key = `${ch.kind}:${ch.id}`
+      if (ch.deleted || ch.data == null) delete pushSnapshot[key]
+      else pushSnapshot[key] = ch.data
+    }
+    await pushLocalState(token, { ...sync, cursor, snapshot: pushSnapshot })
     const cur = await getSettings()
     const lastSyncAt = nowIso()
     const snapshot = await buildSnapshot()

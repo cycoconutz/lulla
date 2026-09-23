@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import {
   allEventTypes,
+  deleteChild,
   saveSettings,
   updateChild,
   upsertHousehold,
@@ -262,6 +263,19 @@ export function SettingsPage() {
                     className="flex-1 rounded-lg bg-transparent px-1 py-0.5 text-sm font-bold outline-none focus:bg-white"
                   />
                   <span className="text-xs text-muted">{c.sex}</span>
+                  <button
+                    type="button"
+                    aria-label={`Delete ${c.name}`}
+                    onClick={() => {
+                      const name = c.name?.trim() || 'this child'
+                      if (!window.confirm(`Delete ${name} and all their records? This cannot be undone.`)) return
+                      if (typeof c.id !== 'string') return
+                      void deleteChild(c.id)
+                    }}
+                    className="ml-auto rounded-lg px-1.5 py-0.5 text-sm font-bold text-rose-deep transition hover:bg-rose-deep/10 active:scale-[0.98]"
+                  >
+                    ✕
+                  </button>
                 </div>
                 <input
                   type="date"

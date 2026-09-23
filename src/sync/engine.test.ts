@@ -63,7 +63,7 @@ vi.mock('./api', () => ({
   }),
 }))
 
-import { adoptForSync, pullAndApply, pushLocalState, runSync } from './engine'
+import { adoptForSync, pushLocalState, runSync } from './engine'
 import type { SyncState } from '../domain/types'
 
 const freshSync = (over: Partial<SyncState> = {}): Settings => {
@@ -212,6 +212,7 @@ describe('runSync', () => {
 
 describe('pullAndApply', () => {
   it('skips incoming rows older than the local copy', async () => {
+    const { pullAndApply } = await import('./engine')
     await seedChild('c-1')
     const local = { id: 'c-1', name: 'Local', updatedAt: '2026-09-01T12:00:00.000Z' } as unknown as Child
     await db.children.put(local)
@@ -234,5 +235,102 @@ describe('pullAndApply', () => {
     const cursor = await pullAndApply('tok', 0)
     expect(cursor).toBe(7)
     expect((await db.children.get('c-1'))?.name).toBe('Local')
+  })
+})
+
+describe('merge duplicate children on join', () => {
+  it('folds a same-name local clone into the household child id, re-pointing its records', async () => {
+    // Device B has a child that is really the same kid as the household's child,
+    // but created under a local uuid before B joined the family.
+    await db.children.add({ id: 'b-clone', name: 'Milo', birthDate: '2026-01-01', order: 0 } as never)
+    await db.events.add({ id: 'e-1', childId: 'b-clone', type: 'feeding', startedAt: '2026-01-02T10:00:00.000Z' } as never)
+    await db.measurements.add({ id: 'm-1', childId: 'b-clone', kind: 'height', value: 60, unit: 'cm', takenAt: '2026-01-02T10:00:00.000Z' } as never)
+
+    // The household pushes its canonical Milo under a different (server) id.
+    h.rows.set('canonical-milo', {
+      data: {
+        id: 'canonical-milo',
+        name: 'Milo',
+        birthDate: '2026-01-01',
+        order: 0,
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      } as never,
+      deleted: false,
+      kind: 'children',
+      rev: 3,
+    })
+
+    await runSync('tok')
+
+    // Exactly one Milo, under the household id, not a clone.
+    const children = await db.children.toArray()
+    expect(children).toHaveLength(1)
+    expect(children[0].id).toBe('canonical-milo')
+
+    // Child-scoped records were re-pointed to the canonical id.
+    const evs = await db.events.toArray()
+    expect(evs[0].childId).toBe('canonical-milo')
+    const ms = await db.measurements.toArray()
+    expect(ms[0].childId).toBe('canonical-milo')
+
+    // The clone id was never pushed to the server, and the canonical child
+    // (already on the server) is not re-pushed — only the device's own rows.
+    const pushedIds = (vi.mocked((await import('./api')).pushRecords).mock.calls as Array<[string, SyncRecordWire[], SyncRecordWire[]]>).flatMap(([, recs, dels]) => [...recs, ...dels].map((r) => r.id))
+    expect(pushedIds).not.toContain('b-clone')
+    expect(pushedIds).not.toContain('canonical-milo')
+    expect(h.rows.has('b-clone')).toBe(false)
+  })
+
+  it('does not merge two distinct children that merely share a name with a birth-date mismatch', async () => {
+    await db.children.add({ id: 'sibling-a', name: 'Milo', birthDate: '2020-01-01', order: 0 } as never)
+    h.rows.set('sibling-b', {
+      data: { id: 'sibling-b', name: 'Milo', birthDate: '2022-02-02', order: 0, updatedAt: '2026-01-01T00:00:00.000Z' } as never,
+      deleted: false,
+      kind: 'children',
+      rev: 3,
+    })
+
+    await runSync('tok')
+
+    const children = await db.children.toArray()
+    expect(children).toHaveLength(2)
+  })
+})
+
+describe('deleteChild', () => {
+  it('removes the child and every child-scoped record, and queues pending deletes when synced', async () => {
+    const { deleteChild, getSettings } = await import('../domain/repositories')
+    await db.children.add({ id: 'child-1', name: 'Milo', birthDate: '2026-01-01', order: 0 } as never)
+    await db.events.add({ id: 'evt-1', childId: 'child-1', type: 'feeding', startedAt: '2026-01-02T10:00:00.000Z' } as never)
+    await db.measurements.add({ id: 'msr-1', childId: 'child-1', kind: 'height', valueCm: 52, measuredAt: '2026-01-02T10:00:00.000Z' } as never)
+    await db.medicalRecords.add({ id: 'med-1', childId: 'child-1', title: 'Checkup' } as never)
+    // An unrelated child whose data must survive.
+    await db.children.add({ id: 'child-2', name: 'Nina', birthDate: '2026-02-01', order: 1 } as never)
+
+    await deleteChild('child-1')
+
+    expect(await db.children.count()).toBe(1)
+    expect((await db.children.toArray())[0].id).toBe('child-2')
+    expect(await db.events.count()).toBe(0)
+    expect(await db.measurements.count()).toBe(0)
+    expect(await db.medicalRecords.count()).toBe(0)
+
+    // Pending deletes recorded for sync (child + every removed row, string ids).
+    const s = await getSettings()
+    const ids = (s.sync?.pendingDeletes ?? []).map((d) => d.id)
+    expect(ids).toContain('child-1')
+    expect(ids).toContain('evt-1')
+    expect(ids).toContain('msr-1')
+    expect(ids).toContain('med-1')
+  })
+
+  it('removes rows without touching today (numeric local child left alone)', async () => {
+    const { deleteChild, getSettings } = await import('../domain/repositories')
+    // Numeric-id rows are pre-adoption legacy; deleteChild only handles string ids.
+    await db.children.add({ id: 1, name: 'Old', birthDate: '2026-01-01', order: 0 } as never)
+    await deleteChild(1 as never)
+    expect(await db.children.count()).toBe(1)
+    const s = await getSettings()
+    expect(s.sync?.pendingDeletes ?? []).toHaveLength(0)
   })
 })
