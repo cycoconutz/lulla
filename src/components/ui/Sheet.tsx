@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useEffect } from 'react'
+import { X } from 'lucide-react'
 
 export function Sheet({
   open,
@@ -33,7 +34,7 @@ export function Sheet({
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-extrabold">{title}</h2>
           <button onClick={onClose} className="rounded-xl p-2 text-muted hover:bg-sand" aria-label="Close">
-            ✕
+            <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
         {children}

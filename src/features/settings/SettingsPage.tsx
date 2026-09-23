@@ -19,16 +19,17 @@ import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
 import { AccountCard } from '../account/AccountCard'
+import { Baby, Bell, BellOff, Camera, Milk, Moon, Pill, Repeat, Sparkles, Syringe, X, type LucideIcon } from 'lucide-react'
 
-const ACTIVITY_LABELS: Record<EventType, string> = {
-  feeding: '🍼 Feeding',
-  sleep: '😴 Sleep',
-  diaper: '🧷 Diapers',
-  routine: '🧸 Routines',
-  medication: '💊 Medicine',
-  vaccine: '💉 Vaccines',
-  milestone: '✨ Milestones',
-  memory: '📷 Memories',
+const ACTIVITY_LABELS: Record<EventType, { Icon: LucideIcon; label: string }> = {
+  feeding: { Icon: Milk, label: 'Feeding' },
+  sleep: { Icon: Moon, label: 'Sleep' },
+  diaper: { Icon: Baby, label: 'Diapers' },
+  routine: { Icon: Repeat, label: 'Routines' },
+  medication: { Icon: Pill, label: 'Medicine' },
+  vaccine: { Icon: Syringe, label: 'Vaccines' },
+  milestone: { Icon: Sparkles, label: 'Milestones' },
+  memory: { Icon: Camera, label: 'Memories' },
 }
 
 export function SettingsPage() {
@@ -127,7 +128,14 @@ export function SettingsPage() {
         <div className="flex flex-wrap gap-1.5">
           {allEventTypes.map((t) => (
             <button key={t} onClick={() => toggleActivity(t)} className={`chip ${settings.enabledActivities.includes(t) ? 'chip-on' : 'opacity-40'}`}>
-              {ACTIVITY_LABELS[t]}
+              {(() => {
+                const a = ACTIVITY_LABELS[t]
+                return (
+                  <>
+                    <a.Icon className="inline h-3.5 w-3.5" aria-hidden /> {a.label}
+                  </>
+                )
+              })()}
             </button>
           ))}
         </div>
@@ -169,7 +177,7 @@ export function SettingsPage() {
               const res = await enablePush()
               if (res.ok) {
                 setPushOn(true)
-                notify('Lulla', 'Lock-screen reminders on 🔔')
+                notify('Lulla', 'Lock-screen reminders on.')
                 void syncPushSchedule(settings, children ?? [])
               } else if (res.reason === 'unsupported') {
                 notify('Lulla', 'This browser can’t receive lock-screen reminders. Try Chrome or Safari.')
@@ -182,7 +190,7 @@ export function SettingsPage() {
           }}
           className="btn-outline mt-3 w-full"
         >
-          {pushOn ? '🔔 Lock-screen reminders: on — tap to turn off' : '🔕 Turn on lock-screen reminders'}
+          <span className="flex items-center gap-2">{pushOn ? <><Bell className="h-4 w-4" aria-hidden /> Lock-screen reminders: on — tap to turn off</> : <><BellOff className="h-4 w-4" aria-hidden /> Turn on lock-screen reminders</>}</span>
         </button>
         {pushOn && (
           <div className="mt-3 rounded-xl bg-sand px-3 py-2.5">
@@ -272,9 +280,9 @@ export function SettingsPage() {
                       if (typeof c.id !== 'string') return
                       void deleteChild(c.id)
                     }}
-                    className="ml-auto rounded-lg px-1.5 py-0.5 text-sm font-bold text-rose-deep transition hover:bg-rose-deep/10 active:scale-[0.98]"
+                    className="ml-auto rounded-lg p-1 text-sm font-bold text-rose-deep transition hover:bg-rose-deep/10 active:scale-[0.98]"
                   >
-                    ✕
+                    <X className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
                 <input

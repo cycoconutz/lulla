@@ -12,6 +12,7 @@ import { useUIStore } from '../../store/ui'
 import { Segmented } from '../../components/ui/Segmented'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { CloudMoon, Moon, Square, Trash2 } from 'lucide-react'
 
 export function SleepPage() {
   const { selected } = useSelectedChild()
@@ -71,7 +72,7 @@ export function SleepPage() {
 
       <div className="card">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-extrabold">{asleep ? 'Sleeping 😴' : (lastNonSleepEnd ? 'Awake' : 'No sleep yet today')}</p>
+          <p className="text-sm font-extrabold">{asleep ? 'Sleeping' : (lastNonSleepEnd ? 'Awake' : 'No sleep yet today')}</p>
           {!asleep && napSuggestion && (
             <p className="text-xs font-bold text-muted">
               Next nap ~{formatTime(napSuggestion.toISOString())}
@@ -97,18 +98,18 @@ export function SleepPage() {
                 {formatElapsed(now.getTime() - new Date(sleepTimer!.startedAt).getTime())}
               </span>
             </p>
-            <button onClick={() => void stopTimer(sleepTimer!)} className="btn-gold mt-3 w-full !py-4 text-base">
-              ■ Wake up
+            <button onClick={() => void stopTimer(sleepTimer!)} className="btn-gold mt-3 flex w-full items-center justify-center gap-2 !py-4 text-base">
+              <Square className="h-4 w-4 fill-current" aria-hidden /> Wake up
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <button onClick={() => startSleep('nap')} className="card !p-5 text-center active:scale-[0.97]">
-              <span className="text-3xl">☁️</span>
+              <CloudMoon className="mx-auto h-7 w-7 text-gold-deep" aria-hidden />
               <p className="mt-1 font-extrabold">Start nap</p>
             </button>
             <button onClick={() => startSleep('night')} className="card !p-5 text-center active:scale-[0.97]">
-              <span className="text-3xl">🌙</span>
+              <Moon className="mx-auto h-7 w-7 text-gold-deep" aria-hidden />
               <p className="mt-1 font-extrabold">Night sleep</p>
             </button>
           </div>
@@ -194,19 +195,21 @@ function SleepList({ events, onDelete }: { events: EventRecord[]; onDelete: (id:
       <p className="mb-2 text-sm font-extrabold text-gold-deep">
         Total: {formatDurationLabel(totalMin)}
       </p>
-      <ul className="space-y-2">
+      <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
         {byTime.map((e) => (
           <li key={e.id} className="card flex items-center justify-between !py-2.5">
             <div>
-              <p className="text-sm font-extrabold">
-                {(e.payload as { kind: string }).kind === 'night' ? '🌙 Night' : '☁️ Nap'}
+              <p className="flex items-center gap-1.5 text-sm font-extrabold">
+                {(e.payload as { kind: string }).kind === 'night'
+                  ? <><Moon className="h-4 w-4 text-gold-deep" aria-hidden /> Night</>
+                  : <><CloudMoon className="h-4 w-4 text-gold-deep" aria-hidden /> Nap</>}
               </p>
               <p className="text-xs text-muted">
                 {formatTime(e.startedAt)} → {e.endedAt ? formatTime(e.endedAt) : '…'}
               </p>
             </div>
             <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-              🗑️
+              <Trash2 className="h-4 w-4" aria-hidden />
             </button>
           </li>
         ))}

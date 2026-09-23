@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { GUIDES, guideForId, guidesForAge } from '../../domain/guides'
 import { ageInMonths } from '../../domain/time'
+import { Moon, Milk, Baby } from 'lucide-react'
 
 export function GuidesPage() {
   const { selected } = useSelectedChild()
@@ -64,7 +65,9 @@ function GuideCard({ id }: { id: string }) {
       <summary className="cursor-pointer list-none">
         <div className="flex items-center justify-between">
           <h3 className="font-extrabold">
-            <span className="mr-1.5">{guide.topic === 'sleep' ? '💤' : guide.topic === 'feeding' ? '🍼' : '🧸'}</span>
+            <span className="mr-1.5">
+              {guide.topic === 'sleep' ? <Moon className="inline h-4 w-4 text-muted" aria-hidden /> : guide.topic === 'feeding' ? <Milk className="inline h-4 w-4 text-muted" aria-hidden /> : <Baby className="inline h-4 w-4 text-muted" aria-hidden />}
+            </span>
             {guide.title}
           </h3>
           <span className="text-muted transition group-open:rotate-90">›</span>

@@ -8,6 +8,7 @@ import { db } from '../../db/schema'
 import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { Camera, Check, Sparkles, Trash2, X } from 'lucide-react'
 
 const ROUTINE_PRESETS = ['Tummy time', 'Bath', 'Story time', 'Walk', 'Playtime', 'Massage', 'High chair time']
 
@@ -25,8 +26,8 @@ export function RoutinesPage() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'routine', label: '🧸 Routines' },
-          { value: 'memories', label: '✨ Firsts' },
+          { value: 'routine', label: 'Routines' },
+          { value: 'memories', label: 'Firsts' },
         ]}
       />
       {tab === 'routine' ? <Routines childId={selected.id!} /> : <Memories childId={selected.id!} />}
@@ -74,7 +75,7 @@ function Routines({ childId }: { childId: EntityId }) {
             onClick={() => log(name)}
             className={`chip ${doneNames.has(name) ? 'chip-on' : ''}`}
           >
-            {name} {doneNames.has(name) && '✓'}
+            {name} {doneNames.has(name) && <Check className="inline h-3.5 w-3.5 text-sage-deep" aria-hidden />}
           </button>
         ))}
       </div>
@@ -107,7 +108,7 @@ function Routines({ childId }: { childId: EntityId }) {
                   <span>{(e.payload as { name: string }).name}</span>
                   <span className="flex items-center gap-2">
                     <span className="text-muted">{formatTime(e.startedAt)}</span>
-                    <button onClick={() => e.id && void deleteEvent(e.id)} aria-label="Delete">✕</button>
+                    <button onClick={() => e.id && void deleteEvent(e.id)} aria-label="Delete"><X className="h-4 w-4" aria-hidden /></button>
                   </span>
                 </li>
               ))}
@@ -183,12 +184,12 @@ function Memories({ childId }: { childId: EntityId }) {
       <div className="flex flex-wrap gap-1.5">
         {MEMORY_PRESETS.map((m) => (
           <button key={m} onClick={() => void addPreset(m)} className="chip">
-            ✨ {m}
+            <span className="flex items-center gap-1"><Sparkles className="inline h-3.5 w-3.5" aria-hidden /> {m}</span>
           </button>
         ))}
       </div>
       <button onClick={() => setOpen(true)} className="btn-outline w-full">
-        Log a memory with notes & photo 📸
+        <span className="flex items-center justify-center gap-2"><Camera className="h-4 w-4" aria-hidden /> Log a memory with notes & photo</span>
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Memory">
@@ -207,10 +208,10 @@ function Memories({ childId }: { childId: EntityId }) {
             className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           {photoData && (
-            <p className="text-xs font-bold text-sage-deep">📷 Photo attached</p>
+            <p className="flex items-center gap-1 text-xs font-bold text-sage-deep"><Camera className="h-3.5 w-3.5" aria-hidden /> Photo attached</p>
           )}
           <label className="btn-outline w-full">
-            {photoData ? 'Replace photo' : 'Attach photo 📷'}
+            <span className="flex items-center justify-center gap-2"><Camera className="h-4 w-4" aria-hidden /> {photoData ? 'Replace photo' : 'Attach photo'}</span>
             <input
               type="file"
               accept="image/*"
@@ -227,7 +228,7 @@ function Memories({ childId }: { childId: EntityId }) {
       </Sheet>
 
       {list.length === 0 ? (
-        <p className="text-sm text-muted">No memories yet. These little firsts fly by! ✨</p>
+        <p className="text-sm text-muted">No memories yet. These little firsts fly by!</p>
       ) : (
         <ul className="space-y-2">
           {list.map((m) => {
@@ -237,12 +238,12 @@ function Memories({ childId }: { childId: EntityId }) {
               <li key={m.id} className="card !p-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-extrabold">✨ {(m.payload as { title: string }).title}</p>
+                    <p className="flex items-center gap-1 text-sm font-extrabold"><Sparkles className="h-4 w-4 text-gold-deep" aria-hidden /> {(m.payload as { title: string }).title}</p>
                     <p className="text-xs text-muted">{new Date(m.startedAt).toLocaleDateString()}</p>
                     {m.note && <p className="mt-1 text-sm text-ink/80">{m.note}</p>}
                   </div>
                   <button onClick={() => m.id && void db.events.delete(m.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                    🗑️
+                    <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
                 {url && <img src={url} alt="memory" className="mt-2 max-h-40 w-full rounded-xl object-cover" />}

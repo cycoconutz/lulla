@@ -28,10 +28,10 @@ export function TrendsPage() {
   if (!selected) return null
 
   const metrics: { value: Metric; label: string }[] = [
-    { value: 'sleep', label: '💤 Sleep' },
-    { value: 'feed', label: '🍼 Feeds' },
-    { value: 'diapers', label: '🧷 Diapers' },
-    { value: 'milk', label: '🥛 Milk vol' },
+    { value: 'sleep', label: 'Sleep' },
+    { value: 'feed', label: 'Feeds' },
+    { value: 'diapers', label: 'Diapers' },
+    { value: 'milk', label: 'Milk vol' },
   ]
 
   const doCsv = async () => {
@@ -50,8 +50,8 @@ export function TrendsPage() {
         value={view}
         onChange={setView}
         options={[
-          { value: 'chart', label: '📊 7 days' },
-          { value: 'calendar', label: '🗓 Calendar' },
+          { value: 'chart', label: '7 days' },
+          { value: 'calendar', label: 'Calendar' },
         ]}
       />
 

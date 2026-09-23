@@ -12,17 +12,18 @@ import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
 import { openSyncEvents } from '../sync/live'
+import { Sun, Milk, Moon, Baby, TrendingUp, Repeat, BarChart3, Heart, BookOpen, Settings, type LucideIcon } from 'lucide-react'
 
-const NAV = [
-  { to: '/', label: 'Today', icon: '🌙' },
-  { to: '/feeding', label: 'Feeding', icon: '🍼' },
-  { to: '/sleep', label: 'Sleep', icon: '😴' },
-  { to: '/diapers', label: 'Diaper', icon: '🧷' },
-  { to: '/growth', label: 'Growth', icon: '📈' },
-  { to: '/routines', label: 'Routine', icon: '🧸' },
-  { to: '/trends', label: 'Trends', icon: '📊' },
-  { to: '/mom', label: 'Mom', icon: '🤍' },
-  { to: '/guides', label: 'Guides', icon: '📖' },
+const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
+  { to: '/', label: 'Today', Icon: Sun },
+  { to: '/feeding', label: 'Feeding', Icon: Milk },
+  { to: '/sleep', label: 'Sleep', Icon: Moon },
+  { to: '/diapers', label: 'Diaper', Icon: Baby },
+  { to: '/growth', label: 'Growth', Icon: TrendingUp },
+  { to: '/routines', label: 'Routine', Icon: Repeat },
+  { to: '/trends', label: 'Trends', Icon: BarChart3 },
+  { to: '/mom', label: 'Mom', Icon: Heart },
+  { to: '/guides', label: 'Guides', Icon: BookOpen },
 ]
 
 export function AppLayoutPage() {
@@ -61,14 +62,12 @@ export function AppLayoutPage() {
     const s = (await db.settings.toArray())[0]
     return s?.sync?.status === 'ready' && !!s.sync?.householdId
   }, [])
-  const syncUser = useSyncStore((s) => s.user)
-  const signOut = useSyncStore((s) => s.signOut)
 
   // Auto-sync when a signed-in device is in a ready household: kick off shortly
   // after any local data revision, whenever the tab regains focus, and on a fixed
   // interval so changes made on other devices show up without user action.
   useEffect(() => {
-    if (!syncReady || !syncUser) return
+    if (!syncReady || !useSyncStore.getState().user) return
     const syncNow = useSyncStore.getState().syncNow
     let t: number | undefined
     const schedule = () => {
@@ -91,48 +90,71 @@ export function AppLayoutPage() {
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [syncReady, syncUser, pushRev])
+  }, [syncReady, pushRev])
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <header className="sticky top-0 z-20 border-b border-sand bg-cream/90 backdrop-blur">
-        <div className="flex items-center justify-between px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <MoonLogo className="h-7 w-7" />
-            <span className="text-lg font-extrabold tracking-tight">lulla</span>
-            {selected && <span className="text-muted text-xs">· {selected.name}</span>}
-          </div>
-          <div className="flex items-center gap-1">
-            {syncUser && (
-              <button
-                onClick={() => {
-                  void signOut()
-                  navigate('/')
-                }}
-                aria-label="Sign out"
-                className="rounded-xl px-2 py-2 text-xs font-bold text-muted transition hover:bg-sand active:scale-95"
-              >
-                Sign out
-              </button>
-            )}
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col lg:max-w-6xl lg:flex-row">
+      <nav className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-sand lg:bg-cream/95 lg:px-3 lg:py-5 lg:backdrop-blur">
+        <div className="mb-4 flex items-center gap-2 px-2">
+          <MoonLogo className="h-7 w-7" />
+          <span className="text-lg font-extrabold tracking-tight">lulla</span>
+        </div>
+        <div className="flex flex-1 flex-col gap-0.5">
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+                  isActive ? 'bg-gold/15 text-gold-deep' : 'text-muted hover:bg-sand'
+                }`
+              }
+            >
+              <item.Icon className="h-5 w-5" aria-hidden />
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+              isActive ? 'bg-gold/15 text-gold-deep' : 'text-muted hover:bg-sand'
+            }`
+          }
+        >
+          <Settings className="h-5 w-5" aria-hidden />
+          Settings
+        </NavLink>
+      </nav>
+
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 border-b border-sand bg-cream/90 backdrop-blur">
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <MoonLogo className="h-7 w-7 lg:hidden" />
+              <span className="text-lg font-extrabold tracking-tight lg:hidden">lulla</span>
+              {selected && <span className="text-sm font-extrabold">{selected.name}</span>}
+            </div>
             <button
               onClick={() => navigate('/settings')}
               aria-label="Settings"
               className="rounded-xl p-2 text-muted transition hover:bg-sand active:scale-95"
             >
-              ⚙️
+              <Settings className="h-5 w-5" />
             </button>
           </div>
-        </div>
-        <ChildSwitcher />
-      </header>
+          <ChildSwitcher />
+        </header>
 
-      <main className="relative flex-1 px-4 pb-[calc(11rem+env(safe-area-inset-bottom))] pt-4">
-        <ActiveTimerBar />
-        <Outlet />
-      </main>
+        <main className="relative flex-1 px-4 pb-[calc(11rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-12">
+          <ActiveTimerBar />
+          <Outlet />
+        </main>
+      </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-sand bg-cream/95 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-sand bg-cream/95 backdrop-blur lg:hidden">
         <div className="grid grid-cols-5 gap-1 px-2 py-2">
           {NAV.slice(0, 5).map((item) => (
             <div key={item.to} className="relative">
@@ -144,7 +166,7 @@ export function AppLayoutPage() {
                   }`
                 }
               >
-                <span className="text-lg leading-none">{item.icon}</span>
+                <item.Icon className="h-6 w-6" aria-hidden />
                 {item.label}
               </NavLink>
             </div>
@@ -158,7 +180,7 @@ export function AppLayoutPage() {
                 }`
               }
             >
-              <span className="text-lg leading-none">🤍</span>
+              <Heart className="h-6 w-6" aria-hidden />
               Mom
             </NavLink>
           </div>
@@ -174,7 +196,7 @@ export function AppLayoutPage() {
                 }`
               }
             >
-              <span className="text-lg leading-none">{item.icon}</span>
+              <item.Icon className="h-6 w-6" aria-hidden />
               {item.label}
             </NavLink>
           ))}

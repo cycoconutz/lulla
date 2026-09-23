@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { eventsRange } from '../../domain/repositories'
 import { buildCalendarDays, localDateKey, monthRangeIso } from '../../domain/calendar'
 import type { EntityId } from '../../domain/types'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const MAX_SHADE_MIN = 840
@@ -43,11 +44,11 @@ export function CalendarCard({ childId }: { childId: EntityId }) {
     <div className="card space-y-3">
       <div className="flex items-center justify-between">
         <button onClick={() => shift(-1)} className="btn-outline !px-3 !py-1.5 text-sm" aria-label="Previous month">
-          ←
+          <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>
         <p className="text-sm font-extrabold">{label}</p>
         <button onClick={() => shift(1)} className="btn-outline !px-3 !py-1.5 text-sm" aria-label="Next month">
-          →
+          <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       </div>
 

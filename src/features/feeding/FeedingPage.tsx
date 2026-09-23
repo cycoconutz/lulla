@@ -10,6 +10,7 @@ import { Stepper } from '../../components/ui/Stepper'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
 import { FIRST_FOODS } from '../../domain/foods'
+import { Cog, HeartHandshake, Square, Trash2 } from 'lucide-react'
 
 type Tab = 'breast' | 'bottle' | 'pump' | 'solids'
 
@@ -61,10 +62,10 @@ export function FeedingPage() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'breast', label: '🫂 Breast' },
-          { value: 'bottle', label: '🍼 Bottle' },
-          { value: 'pump', label: '⚙️ Pump' },
-          { value: 'solids', label: '🥣 Solids' },
+          { value: 'breast', label: 'Breast' },
+          { value: 'bottle', label: 'Bottle' },
+          { value: 'pump', label: 'Pump' },
+          { value: 'solids', label: 'Solids' },
         ]}
       />
 
@@ -123,7 +124,7 @@ function SideButton({ side, hint, onClick }: { side: 'left' | 'right'; hint: boo
           suggested
         </span>
       )}
-      <span className="text-4xl">🫂</span>
+      <HeartHandshake className="mx-auto h-8 w-8 text-gold-deep" aria-hidden />
       <p className="mt-2 text-base font-extrabold">{side === 'left' ? 'Left' : 'Right'}</p>
       <p className="text-xs text-muted">Tap to start timer</p>
     </button>
@@ -132,8 +133,8 @@ function SideButton({ side, hint, onClick }: { side: 'left' | 'right'; hint: boo
 
 function StopTimerButton({ onClick }: { onClick: () => void }) {
   return (
-    <button onClick={onClick} className="btn-gold mt-3 w-full !py-4 text-base">
-      ■ Stop & save
+    <button onClick={onClick} className="btn-gold mt-3 flex w-full items-center justify-center gap-2 !py-4 text-base">
+      <Square className="h-4 w-4 fill-current" aria-hidden /> Stop & save
     </button>
   )
 }
@@ -210,18 +211,18 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
           <p className="text-muted text-xs font-extrabold uppercase tracking-wider">
             Pumping {activeSide}…
           </p>
-          <button onClick={onStop} className="btn-gold mt-3 w-full !py-4 text-base">
-            ■ Stop & save volume
+          <button onClick={onStop} className="btn-gold mt-3 flex w-full items-center justify-center gap-2 !py-4 text-base">
+            <Square className="h-4 w-4 fill-current" aria-hidden /> Stop & save volume
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <button onClick={() => start('left')} className="card !p-5 text-center active:scale-[0.97]">
-            <span className="text-3xl">⚙️</span>
+            <Cog className="mx-auto h-7 w-7 text-gold-deep" aria-hidden />
             <p className="mt-1 font-extrabold">Pump left</p>
           </button>
           <button onClick={() => start('right')} className="card !p-5 text-center active:scale-[0.97]">
-            <span className="text-3xl">⚙️</span>
+            <Cog className="mx-auto h-7 w-7 text-gold-deep" aria-hidden />
             <p className="mt-1 font-extrabold">Pump right</p>
           </button>
         </div>
@@ -276,8 +277,8 @@ function SolidsLog({ childId }: { childId: EntityId }) {
         <div className="space-y-4">
           {FIRST_FOODS.map((cat) => (
             <div key={cat.label}>
-              <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-muted">
-                {cat.emoji} {cat.label}
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-muted">
+                <cat.Icon className="h-4 w-4" aria-hidden /> {cat.label}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {cat.foods.map((food) => (
@@ -309,7 +310,7 @@ function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: 
   }
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
       {byTime.map((e) => (
         <li key={e.id} className="card flex items-center justify-between !py-2.5">
           <div>
@@ -324,7 +325,7 @@ function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: 
             className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
             aria-label="Delete"
           >
-            🗑️
+            <Trash2 className="h-4 w-4" aria-hidden />
           </button>
         </li>
       ))}

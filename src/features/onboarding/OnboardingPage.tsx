@@ -58,7 +58,7 @@ export function OnboardingPage() {
 
       <div className="card mb-4">
         <h2 className="mb-1 text-lg font-extrabold">
-          {existing ? 'Add a child' : 'First, add a child 🐣'}
+          {existing ? 'Add a child' : 'First, add a child'}
         </h2>
         <p className="mb-3 text-xs text-muted">
           Lulla needs at least one child in your family before you can start tracking.

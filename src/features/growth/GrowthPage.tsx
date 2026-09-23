@@ -4,6 +4,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { useSelectedChild } from '../../hooks/useChildren'
 import { measurementsForKind, addMeasurement } from '../../domain/repositories'
 import type { EntityId, Measurement } from '../../domain/types'
+import { Syringe, Pill, ClipboardList, Trash2 } from 'lucide-react'
 import {
   referenceSeries,
   percentileLabel,
@@ -26,16 +27,16 @@ const KIND_META: { kind: GrowthKind; label: string }[] = [
 ]
 
 const MILESTONE_PRESETS = [
-  'First smile 😊',
-  'First laugh 😂',
-  'Rolls over 🔄',
-  'Sits up 🪑',
-  'First solid food 🥣',
-  'First tooth 🦷',
-  'Crawls 🐛',
-  'First word 🗣️',
-  'Pulls to stand 🧍',
-  'First steps 👣',
+  'First smile',
+  'First laugh',
+  'Rolls over',
+  'Sits up',
+  'First solid food',
+  'First tooth',
+  'Crawls',
+  'First word',
+  'Pulls to stand',
+  'First steps',
 ]
 
 export function GrowthPage() {
@@ -51,9 +52,9 @@ export function GrowthPage() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'growth', label: '📈 Growth' },
-          { value: 'milestones', label: '✨ Milestones' },
-          { value: 'health', label: '🩺 Health' },
+          { value: 'growth', label: 'Growth' },
+          { value: 'milestones', label: 'Milestones' },
+          { value: 'health', label: 'Health' },
         ]}
       />
       {tab === 'growth' && <GrowthCharts childId={selected.id!} sex={selected.sex} birthDate={selected.birthDate} />}
@@ -252,7 +253,7 @@ function Milestones({ childId }: { childId: EntityId }) {
           <input
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
-            placeholder="e.g. First steps 👣"
+            placeholder="e.g. First steps"
             className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <label className="block text-xs font-bold text-muted">When</label>
@@ -274,7 +275,7 @@ function Milestones({ childId }: { childId: EntityId }) {
                 <p className="text-xs text-muted">{new Date(m.startedAt).toLocaleDateString()}</p>
               </div>
               <button onClick={() => m.id && void db.events.delete(m.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                🗑️
+                <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             </li>
           ))}
@@ -325,9 +326,9 @@ function Health({ childId }: { childId: EntityId }) {
           value={kind}
           onChange={setKind}
           options={[
-            { value: 'vaccine', label: '💉 Vaccine' },
-            { value: 'medication', label: '💊 Medicine' },
-            { value: 'record', label: '📋 Record' },
+            { value: 'vaccine', label: 'Vaccine' },
+            { value: 'medication', label: 'Medicine' },
+            { value: 'record', label: 'Record' },
           ]}
         />
         <input
@@ -367,8 +368,8 @@ function Health({ childId }: { childId: EntityId }) {
           {records.map((r) => (
             <li key={r.id} className="card flex items-center justify-between !py-2.5">
               <div>
-                <p className="text-sm font-extrabold">
-                  {r.kind === 'vaccine' ? '💉' : r.kind === 'medication' ? '💊' : '📋'} {r.title}
+                <p className="flex items-center gap-1.5 text-sm font-extrabold">
+                  {r.kind === 'vaccine' ? <Syringe className="h-4 w-4 text-gold-deep" aria-hidden /> : r.kind === 'medication' ? <Pill className="h-4 w-4 text-gold-deep" aria-hidden /> : <ClipboardList className="h-4 w-4 text-gold-deep" aria-hidden />} {r.title}
                   {r.detail && <span className="font-bold text-muted"> · {r.detail}</span>}
                 </p>
                 <p className="text-xs text-muted">
@@ -377,7 +378,7 @@ function Health({ childId }: { childId: EntityId }) {
                 </p>
               </div>
               <button onClick={() => r.id && void db.medicalRecords.delete(r.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                🗑️
+                <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             </li>
           ))}
