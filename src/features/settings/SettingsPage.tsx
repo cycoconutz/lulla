@@ -19,7 +19,7 @@ import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
 import { AccountCard } from '../account/AccountCard'
-import { Baby, Bell, BellOff, Camera, Milk, Moon, Pill, Repeat, Sparkles, Syringe, X, type LucideIcon } from 'lucide-react'
+import { Baby, Bell, BellOff, Camera, Coffee, Milk, Moon, Pill, Repeat, Sparkles, Syringe, X, type LucideIcon } from 'lucide-react'
 
 const ACTIVITY_LABELS: Record<EventType, { Icon: LucideIcon; label: string }> = {
   feeding: { Icon: Milk, label: 'Feeding' },
@@ -98,6 +98,15 @@ export function SettingsPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Settings</h1>
+
+      <a
+        href="https://buymeacoffee.com/cycoconutz"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-gold w-full"
+      >
+        <Coffee className="h-4 w-4" aria-hidden /> Buy me a coffee
+      </a>
 
       <AccountCard />
 
