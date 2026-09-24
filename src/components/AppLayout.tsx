@@ -12,7 +12,7 @@ import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
 import { openSyncEvents } from '../sync/live'
-import { Sun, Milk, Moon, Baby, TrendingUp, Repeat, BarChart3, Heart, BookOpen, Settings, type LucideIcon } from 'lucide-react'
+import { Sun, Milk, Moon, Baby, TrendingUp, Repeat, BarChart3, Heart, BookOpen, Coffee, Settings, type LucideIcon } from 'lucide-react'
 
 const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/', label: 'Today', Icon: Sun },
@@ -127,6 +127,15 @@ export function AppLayoutPage() {
           <Settings className="h-5 w-5" aria-hidden />
           Settings
         </NavLink>
+        <a
+          href="https://buymeacoffee.com/cycoconutz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-muted transition hover:bg-sand"
+        >
+          <Coffee className="h-5 w-5" aria-hidden />
+          Buy me a coffee
+        </a>
       </nav>
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
@@ -189,6 +198,16 @@ export function AppLayoutPage() {
               {item.label}
             </NavLink>
           ))}
+          <a
+            href="https://buymeacoffee.com/cycoconutz"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Buy me a coffee"
+            className="flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold text-muted transition hover:bg-sand"
+          >
+            <Coffee className="h-6 w-6" aria-hidden />
+            Coffee
+          </a>
         </div>
       </nav>
     </div>

@@ -99,15 +99,6 @@ export function SettingsPage() {
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Settings</h1>
 
-      <a
-        href="https://buymeacoffee.com/cycoconutz"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn-gold w-full"
-      >
-        <Coffee className="h-4 w-4" aria-hidden /> Buy me a coffee
-      </a>
-
       <AccountCard />
 
       <section className="card">
@@ -344,6 +335,15 @@ export function SettingsPage() {
         </p>
         <p className="mt-2 text-xs font-bold text-ink/70">Lulla v{__APP_VERSION__}</p>
       </section>
+
+      <a
+        href="https://buymeacoffee.com/cycoconutz"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-gold w-full"
+      >
+        <Coffee className="h-4 w-4" aria-hidden /> Buy me a coffee
+      </a>
     </div>
   )
 }
