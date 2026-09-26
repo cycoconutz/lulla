@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.28",
+    "date": "2026-09-26",
+    "title": "serve the marketing landing page at /landing",
+    "sha": "6e5ea7a5a7fd3a3834f684e37bce1b8dacdd7889"
+  },
+  {
     "version": "0.1.26",
     "date": "2026-09-26",
     "title": "full clone depth so version and changelog derive from real history",
