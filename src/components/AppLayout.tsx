@@ -13,18 +13,17 @@ import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
 import { useApplyTheme } from '../hooks/useTheme'
 import { openSyncEvents } from '../sync/live'
-import { Sun, Milk, Moon, Baby, TrendingUp, Repeat, BarChart3, Heart, BookOpen, Coffee, Settings, type LucideIcon } from 'lucide-react'
+import { Sun, Milk, Moon, Baby, Flag, Repeat, BarChart3, Heart, Coffee, Settings, type LucideIcon } from 'lucide-react'
 
 const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/', label: 'Today', Icon: Sun },
   { to: '/feeding', label: 'Feeding', Icon: Milk },
   { to: '/sleep', label: 'Sleep', Icon: Moon },
   { to: '/diapers', label: 'Diaper', Icon: Baby },
-  { to: '/growth', label: 'Growth', Icon: TrendingUp },
+  { to: '/milestones', label: 'Milestones', Icon: Flag },
   { to: '/routines', label: 'Routine', Icon: Repeat },
   { to: '/trends', label: 'Trends', Icon: BarChart3 },
   { to: '/mom', label: 'Mom', Icon: Heart },
-  { to: '/guides', label: 'Guides', Icon: BookOpen },
 ]
 
 export function AppLayoutPage() {

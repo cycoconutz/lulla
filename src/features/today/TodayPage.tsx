@@ -10,14 +10,14 @@ import { ageLabel, ageInMonths } from '../../domain/time'
 import { windowForAge } from '../../domain/wakeWindows'
 import { useUIStore } from '../../store/ui'
 import { MoonLogo } from '../../components/Logo'
-import { AlarmClock, Milk, Moon, Baby, Repeat, TrendingUp, BarChart3, type LucideIcon } from 'lucide-react'
+import { AlarmClock, Milk, Moon, Baby, Repeat, Flag, BarChart3, type LucideIcon } from 'lucide-react'
 
 const QUICK: { to: string; label: string; Icon: LucideIcon; color: string }[] = [
   { to: '/feeding', label: 'Feeding', Icon: Milk, color: 'from-gold/25 to-gold/5' },
   { to: '/sleep', label: 'Sleep', Icon: Moon, color: 'from-rose/25 to-rose/5' },
   { to: '/diapers', label: 'Diaper', Icon: Baby, color: 'from-sage/25 to-sage/5' },
   { to: '/routines', label: 'Routine', Icon: Repeat, color: 'from-rose/25 to-rose/5' },
-  { to: '/growth', label: 'Growth', Icon: TrendingUp, color: 'from-sage/25 to-sage/5' },
+  { to: '/milestones', label: 'Milestones', Icon: Flag, color: 'from-sage/25 to-sage/5' },
   { to: '/trends', label: 'Trends', Icon: BarChart3, color: 'from-gold/25 to-gold/5' },
 ]
 

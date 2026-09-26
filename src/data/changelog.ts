@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.32",
+    "date": "2026-09-26",
+    "title": "add a theme toggle to the onboarding screen",
+    "sha": "4e9707e0e5376ebde3d6cf9d40bdf226a71d3ebe"
+  },
+  {
     "version": "0.1.31",
     "date": "2026-09-26",
     "title": "repair concatenated .gitignore rules and make the e2e harness runnable",

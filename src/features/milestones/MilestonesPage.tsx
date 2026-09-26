@@ -5,7 +5,7 @@ import { useSelectedChild } from '../../hooks/useChildren'
 import { useTheme } from '../../hooks/useTheme'
 import { measurementsForKind, addMeasurement } from '../../domain/repositories'
 import type { EntityId, Measurement } from '../../domain/types'
-import { Syringe, Pill, ClipboardList, Trash2 } from 'lucide-react'
+import { Syringe, Pill, ClipboardList, Trash2, Camera, Flag } from 'lucide-react'
 import {
   referenceSeries,
   percentileLabel,
@@ -19,7 +19,7 @@ import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
 import { DateTimeField } from '../../components/ui/DateTimeField'
 
-type Tab = 'growth' | 'milestones' | 'health'
+type Tab = 'milestones' | 'health' | 'growth'
 
 const KIND_META: { kind: GrowthKind; label: string }[] = [
   { kind: 'weight', label: 'Weight' },
@@ -40,27 +40,27 @@ const MILESTONE_PRESETS = [
   'First steps',
 ]
 
-export function GrowthPage() {
+export function MilestonesPage() {
   const { selected } = useSelectedChild()
-  const [tab, setTab] = useState<Tab>('growth')
+  const [tab, setTab] = useState<Tab>('milestones')
 
   if (!selected) return null
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-extrabold">Growth & health</h1>
+      <h1 className="text-2xl font-extrabold">Milestones &amp; health</h1>
       <Segmented
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'growth', label: 'Growth' },
           { value: 'milestones', label: 'Milestones' },
           { value: 'health', label: 'Health' },
+          { value: 'growth', label: 'Growth' },
         ]}
       />
-      {tab === 'growth' && <GrowthCharts childId={selected.id!} sex={selected.sex} birthDate={selected.birthDate} />}
       {tab === 'milestones' && <Milestones childId={selected.id!} />}
       {tab === 'health' && <Health childId={selected.id!} />}
+      {tab === 'growth' && <GrowthCharts childId={selected.id!} sex={selected.sex} birthDate={selected.birthDate} />}
     </div>
   )
 }
@@ -211,56 +211,126 @@ function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKin
   )
 }
 
+/**
+ * Milestones and the old "firsts" memories are one list. Rows written before the
+ * merge are still `memory` events, so both types are read back and new entries
+ * are saved as `milestone` with the note and photo fields the firsts sheet used.
+ */
 function Milestones({ childId }: { childId: EntityId }) {
   const [open, setOpen] = useState(false)
-  const [custom, setCustom] = useState('')
+  const [title, setTitle] = useState('')
+  const [note, setNote] = useState('')
   const [at, setAt] = useState<string>(nowIso())
-  const existing = useLiveQuery(
-    () => db.events.where('type').equals('milestone').and((e) => e.childId === childId).toArray(),
+  const [photoData, setPhotoData] = useState<Blob | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const rows = useLiveQuery(
+    async () => {
+      const all = await db.events
+        .where('childId')
+        .equals(childId)
+        .filter((e) => e.type === 'milestone' || e.type === 'memory')
+        .toArray()
+      return all.sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+    },
     [childId],
     [],
   )
 
-  const add = (title: string) => {
-    if (!title.trim()) return
+  const photoUrls = useLiveQuery(async () => {
+    const ids = (rows ?? []).flatMap((r) => r.photoIds ?? [])
+    if (ids.length === 0) return new Map<EntityId, string>()
+    const photos = await db.photos.bulkGet(ids)
+    const map = new Map<EntityId, string>()
+    for (const p of photos) {
+      if (p?.id) map.set(p.id, URL.createObjectURL(p.blob))
+    }
+    return map
+  }, [rows])
+
+  const log = (t: string, when: string, extra?: { note?: string; photoIds?: EntityId[] }) => {
+    const trimmed = t.trim()
+    if (!trimmed) return
     void db.events.add({
       id: newId(),
       childId,
       type: 'milestone',
-      startedAt: at,
-      payload: { title: title.trim() },
+      startedAt: when,
+      payload: { title: trimmed },
+      note: extra?.note,
+      photoIds: extra?.photoIds,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     })
-    setCustom('')
+  }
+
+  const addPreset = (t: string) => log(t, nowIso())
+
+  const openSheet = () => {
+    setAt(nowIso())
+    setOpen(true)
+  }
+
+  const save = async () => {
+    if (!title.trim()) return
+    setBusy(true)
+    let photoIds: EntityId[] | undefined
+    if (photoData) {
+      const id = await db.photos.add({ id: newId(), blob: photoData, at: nowIso() })
+      photoIds = [id]
+    }
+    log(title, at, { note: note.trim() || undefined, photoIds })
+    setBusy(false)
+    setTitle('')
+    setNote('')
+    setPhotoData(null)
     setOpen(false)
   }
 
-  const list = [...(existing ?? [])].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+  const list = rows ?? []
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-1.5">
         {MILESTONE_PRESETS.map((m) => (
-          <button key={m} onClick={() => add(m)} className="chip">
+          <button key={m} onClick={() => addPreset(m)} className="chip">
             {m}
           </button>
         ))}
       </div>
-      <button onClick={() => setOpen(true)} className="btn-outline w-full">
-        Add custom milestone
+      <button onClick={openSheet} className="btn-outline w-full">
+        <span className="flex items-center justify-center gap-2"><Camera className="h-4 w-4" aria-hidden /> Log with notes &amp; photo</span>
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Milestone">
         <div className="space-y-4">
           <input
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. First steps"
             className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Notes…"
+            rows={3}
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+          />
+          {photoData && (
+            <p className="flex items-center gap-1 text-xs font-bold text-sage-deep"><Camera className="h-3.5 w-3.5" aria-hidden /> Photo attached</p>
+          )}
+          <label className="btn-outline w-full">
+            <span className="flex items-center justify-center gap-2"><Camera className="h-4 w-4" aria-hidden /> {photoData ? 'Replace photo' : 'Attach photo'}</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setPhotoData(e.target.files?.[0] ?? null)}
+            />
+          </label>
           <label className="block text-xs font-bold text-muted">When</label>
           <DateTimeField value={at} onChange={setAt} />
-          <button onClick={() => add(custom)} className="btn-gold w-full !py-4">
+          <button onClick={() => void save()} disabled={busy} className="btn-gold w-full !py-4 disabled:opacity-40">
             Save milestone
           </button>
         </div>
@@ -270,17 +340,25 @@ function Milestones({ childId }: { childId: EntityId }) {
         <p className="text-sm text-muted">No milestones captured yet. Tap one above to log it!</p>
       ) : (
         <ul className="space-y-2">
-          {list.map((m) => (
-            <li key={m.id} className="card flex items-center justify-between !py-2.5">
-              <div>
-                <p className="text-sm font-extrabold">{(m.payload as { title: string }).title}</p>
-                <p className="text-xs text-muted">{new Date(m.startedAt).toLocaleDateString()}</p>
-              </div>
-              <button onClick={() => m.id && void db.events.delete(m.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                <Trash2 className="h-4 w-4" aria-hidden />
-              </button>
-            </li>
-          ))}
+          {list.map((m) => {
+            const photo = m.photoIds?.[0] ?? null
+            const url = photo != null ? photoUrls?.get(photo) : null
+            return (
+              <li key={m.id} className="card !p-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="flex items-center gap-1 text-sm font-extrabold"><Flag className="h-4 w-4 text-gold-deep" aria-hidden /> {(m.payload as { title: string }).title}</p>
+                    <p className="text-xs text-muted">{new Date(m.startedAt).toLocaleDateString()}</p>
+                    {m.note && <p className="mt-1 text-sm text-ink/80">{m.note}</p>}
+                  </div>
+                  <button onClick={() => m.id && void db.events.delete(m.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </div>
+                {url && <img src={url} alt="milestone" className="mt-2 max-h-40 w-full rounded-xl object-cover" />}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

@@ -61,13 +61,13 @@ export function routeForType(type: string): string {
     case 'routine':
       return '#/routines'
     case 'medication':
-      return '#/medication'
+      return '#/milestones'
     case 'vaccine':
-      return '#/growth'
+      return '#/milestones'
     case 'milestone':
-      return '#/routines'
+      return '#/milestones'
     case 'memory':
-      return '#/routines'
+      return '#/milestones'
     case 'mom':
       return '#/mom'
     default:

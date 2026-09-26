@@ -77,7 +77,6 @@ export const allEventTypes = [
   'medication',
   'vaccine',
   'milestone',
-  'memory',
 ] as const
 
 // ---- children / household ----

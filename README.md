@@ -15,11 +15,12 @@ milestones, and pregnancy/postpartum health — all stored **on your device**
 - **Feeding** — breast (side + timer), bottle (formula/expressed), pumping, solids; one-tap logging and a live timer
 - **Sleep** — start/stop timer, wake-window insights, nap and night history
 - **Diapers** — wet/dirty/pee/poop counts, one-tap or detailed
-- **Growth** — weight / length / head charts against WHO percentile references, milestones, medications, records
-- **Routines & firsts** — day summaries, memories with photos under your control
+- **Milestones** — age milestones and firsts in one list, with notes and photos
+- **Health** — vaccines, medications and records
+- **Growth** — weight / length / head charts against WHO percentile references
+- **Routines** — day summaries and routine logging
 - **Trends** — the last 7 days at a glance
 - **Mom** — pregnancy, labor, and postpartum tracking
-- **Guides** — age-indexed parenting guides
 - **Reminders** — best-effort local notifications
 - **Data you own** — full JSON backup, CSV export, local-first storage
 

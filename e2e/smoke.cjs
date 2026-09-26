@@ -18,7 +18,7 @@ module.exports = async (t) => {
   await clickText(t, "Done — open Lulla")
   await t.wait(1800)
 
-  const targets = ["Sleep", "Feeding", "Diaper", "Routine", "Mom", "Growth", "Trends", "Guides"]
+  const targets = ["Sleep", "Feeding", "Diaper", "Routine", "Mom", "Milestones", "Trends"]
   for (const label of targets) {
     await navTo(t, label)
     await t.wait(800)
