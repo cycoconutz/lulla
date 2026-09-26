@@ -94,7 +94,7 @@ function DetailedDiaper({ childId, onClose }: { childId?: EntityId; onClose: () 
           </button>
         ))}
       </div>
-      <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white px-4 py-3">
+      <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-paper px-4 py-3">
         <span className="flex items-center gap-1.5 font-extrabold"><Bandage className="h-4 w-4 text-muted" aria-hidden /> Rash?</span>
         <input type="checkbox" checked={rash} onChange={(e) => setRash(e.target.checked)} className="h-5 w-5 accent-[#c98d74]" />
       </label>

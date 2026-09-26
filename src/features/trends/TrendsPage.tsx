@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
+import { useChartPalette } from '../../hooks/useTheme'
 import { eventsRange, eventsForChild } from '../../domain/repositories'
 import type { EventRecord } from '../../domain/types'
 import { downloadCsv, exportBackup, downloadJson } from '../../db/exportImport'
@@ -22,6 +23,8 @@ export function TrendsPage() {
     [selected?.id, weekAgo],
     [],
   )
+
+  const palette = useChartPalette()
 
   const data = useMemo(() => buildDaily(eventsWeek ?? [], selected?.birthDate ?? ''), [eventsWeek, selected?.birthDate])
 
@@ -65,27 +68,27 @@ export function TrendsPage() {
         <ResponsiveContainer width="100%" height={260}>
           {metric === 'milk' ? (
             <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-              <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8b7f6f' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#8b7f6f' }} />
+              <CartesianGrid stroke={palette.grid} strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: palette.tick }} />
+              <YAxis tick={{ fontSize: 11, fill: palette.tick }} />
               <Tooltip />
               <Line type="monotone" dataKey="milkOz" stroke="#c98d74" strokeWidth={3} dot={{ r: 4 }} name="oz" />
             </LineChart>
           ) : metric === 'sleep' ? (
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-              <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8b7f6f' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#8b7f6f' }} domain={[0, 24]} />
+              <CartesianGrid stroke={palette.grid} strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: palette.tick }} />
+              <YAxis tick={{ fontSize: 11, fill: palette.tick }} domain={[0, 24]} />
               <Tooltip />
               <Bar dataKey="sleepHrs" stackId="day" fill="#d9a441" name="Sleep (hrs)" />
               <Bar dataKey="feedHrs" stackId="day" fill="#c98d74" name="Feed (hrs)" />
-              <Bar dataKey="awakeHrs" stackId="day" fill="#efe4cf" radius={[6, 6, 0, 0]} name="Awake (hrs)" />
+              <Bar dataKey="awakeHrs" stackId="day" fill={palette.awake} radius={[6, 6, 0, 0]} name="Awake (hrs)" />
             </BarChart>
           ) : (
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-              <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8b7f6f' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#8b7f6f' }} />
+              <CartesianGrid stroke={palette.grid} strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: palette.tick }} />
+              <YAxis tick={{ fontSize: 11, fill: palette.tick }} />
               <Tooltip />
               <Bar dataKey={metric === 'feed' ? 'feeds' : 'diapers'} fill="#d9a441" radius={[6, 6, 0, 0]} name="count" />
             </BarChart>

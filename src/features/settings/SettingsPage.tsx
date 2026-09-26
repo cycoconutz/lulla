@@ -124,6 +124,23 @@ export function SettingsPage() {
       </section>
 
       <section className="card">
+        <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Appearance</h2>
+        <div className="flex items-center justify-between gap-3">
+          <Segmented
+            value={settings.theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')}
+            onChange={(v) => set({ theme: v as 'light' | 'dark' })}
+            options={[
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+            ]}
+          />
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted">
+          Picked here, it overrides this device’s light/dark preference.
+        </p>
+      </section>
+
+      <section className="card">
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">What you track</h2>
         <div className="flex flex-wrap gap-1.5">
           {allEventTypes.map((t) => (
@@ -202,7 +219,7 @@ export function SettingsPage() {
                 onChange={(e) =>
                   set({ quietHours: { start: e.target.value || '21:00', end: settings.quietHours?.end ?? '07:00' } })
                 }
-                className="rounded-lg bg-white px-2 py-1.5 text-xs font-bold outline-none"
+                className="rounded-lg bg-paper px-2 py-1.5 text-xs font-bold outline-none"
               />
               <span className="text-muted">to</span>
               <input
@@ -211,7 +228,7 @@ export function SettingsPage() {
                 onChange={(e) =>
                   set({ quietHours: { start: settings.quietHours?.start ?? '21:00', end: e.target.value || '07:00' } })
                 }
-                className="rounded-lg bg-white px-2 py-1.5 text-xs font-bold outline-none"
+                className="rounded-lg bg-paper px-2 py-1.5 text-xs font-bold outline-none"
               />
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-muted">
@@ -241,7 +258,7 @@ export function SettingsPage() {
             value={caregiverInput}
             onChange={(e) => setCaregiverInput(e.target.value)}
             placeholder="Add caregiver"
-            className="flex-1 rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm font-bold outline-none focus:border-gold"
+            className="flex-1 rounded-2xl border border-ink/10 bg-paper px-4 py-2.5 text-sm font-bold outline-none focus:border-gold"
           />
           <button
             onClick={async () => {
@@ -268,7 +285,7 @@ export function SettingsPage() {
                   <input
                     defaultValue={c.name}
                     onBlur={(e) => updateChild({ ...c, name: e.target.value.trim() || c.name })}
-                    className="flex-1 rounded-lg bg-transparent px-1 py-0.5 text-sm font-bold outline-none focus:bg-white"
+                    className="flex-1 rounded-lg bg-transparent px-1 py-0.5 text-sm font-bold outline-none focus:bg-paper"
                   />
                   <span className="text-xs text-muted">{c.sex}</span>
                   <button
@@ -289,7 +306,7 @@ export function SettingsPage() {
                   type="date"
                   defaultValue={c.birthDate}
                   onBlur={(e) => updateChild({ ...c, birthDate: e.target.value || c.birthDate })}
-                  className="mt-1 rounded-lg bg-white px-2 py-1 text-xs font-bold outline-none"
+                  className="mt-1 rounded-lg bg-paper px-2 py-1 text-xs font-bold outline-none"
                 />
               </li>
             ))}

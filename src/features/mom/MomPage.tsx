@@ -230,14 +230,14 @@ function AppointmentForm({ profile, onClose }: { profile: ParentProfile; onClose
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="e.g. 28-week checkup"
-        className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+        className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
       />
       <textarea
         value={questions}
         onChange={(e) => setQuestions(e.target.value)}
         placeholder="Questions for your provider…"
         rows={3}
-        className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+        className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
       />
       <label className="block text-xs font-bold text-muted">When</label>
       <DateTimeField value={at} onChange={setAt} />

@@ -30,7 +30,7 @@ export function DateTimeField({
       type="datetime-local"
       value={local}
       onChange={(e) => commit(e.target.value)}
-      className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold text-ink outline-none focus:border-gold"
+      className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold text-ink outline-none focus:border-gold"
     />
   )
 }

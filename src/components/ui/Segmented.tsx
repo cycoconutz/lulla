@@ -18,7 +18,7 @@ export function Segmented<T extends string>({
           onClick={() => onChange(o.value)}
           className={`flex-1 rounded-xl font-bold transition ${
             size === 'sm' ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'
-          } ${value === o.value ? 'bg-white text-ink shadow-sm' : 'text-muted'}`}
+          } ${value === o.value ? 'bg-paper text-ink shadow-sm' : 'text-muted'}`}
         >
           {o.label}
         </button>

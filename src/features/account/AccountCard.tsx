@@ -7,7 +7,7 @@ import { db } from '../../db/schema'
 type Mode = 'signin' | 'signup' | 'forgot'
 
 const inputCls =
-  'flex-1 rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm font-bold outline-none focus:border-gold'
+  'flex-1 rounded-2xl border border-ink/10 bg-paper px-4 py-2.5 text-sm font-bold outline-none focus:border-gold'
 
 function copy(text: string) {
   void navigator.clipboard?.writeText(text).catch(() => undefined)
@@ -214,7 +214,7 @@ export function AccountCard() {
                       setNotice(null)
                     }}
                     className={`flex-1 rounded-xl py-1.5 text-xs font-bold transition ${
-                      mode === m ? 'bg-white text-ink shadow-sm' : 'text-muted'
+                      mode === m ? 'bg-paper text-ink shadow-sm' : 'text-muted'
                     }`}
                   >
                     {m === 'signin' ? 'Sign in' : 'Create account'}

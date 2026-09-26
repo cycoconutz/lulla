@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
+import { useTheme } from '../../hooks/useTheme'
 import { measurementsForKind, addMeasurement } from '../../domain/repositories'
 import type { EntityId, Measurement } from '../../domain/types'
 import { Syringe, Pill, ClipboardList, Trash2 } from 'lucide-react'
@@ -70,6 +71,7 @@ type UserRow = { months: number; p3: number | null; p50: number | null; p97: num
 function GrowthCharts({ childId, sex, birthDate }: { childId: EntityId; sex: 'boy' | 'girl'; birthDate: string }) {
   const [kind, setKind] = useState<GrowthKind>('weight')
   const [open, setOpen] = useState(false)
+  const dark = useTheme() === 'dark'
 
   const measurements = useLiveQuery(
     () => measurementsForKind(childId, kind),
@@ -123,21 +125,21 @@ function GrowthCharts({ childId, sex, birthDate }: { childId: EntityId; sex: 'bo
             data={data}
             margin={{ top: 8, right: 8, bottom: 0, left: -14 }}
           >
-            <CartesianGrid stroke="#f0e8da" strokeDasharray="3 3" />
+            <CartesianGrid stroke={dark ? '#2a2318' : '#f0e8da'} strokeDasharray="3 3" />
             <XAxis
               dataKey="months"
               type="number"
               domain={[0, 24]}
               ticks={[0, 3, 6, 9, 12, 18, 24]}
-              tick={{ fontSize: 11, fill: '#8b7f6f' }}
-              label={{ value: 'months', position: 'insideBottomRight', offset: -2, fontSize: 10, fill: '#8b7f6f' }}
+              tick={{ fontSize: 11, fill: dark ? '#9d8f78' : '#8b7f6f' }}
+              label={{ value: 'months', position: 'insideBottomRight', offset: -2, fontSize: 10, fill: dark ? '#9d8f78' : '#8b7f6f' }}
             />
-            <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#8b7f6f' }} />
+            <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: dark ? '#9d8f78' : '#8b7f6f' }} />
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Line type="monotone" dataKey="p3" stroke="#d9d2c4" dot={false} strokeDasharray="3 3" name="P3" />
-            <Line type="monotone" dataKey="p50" stroke="#a8c3ab" dot={false} strokeWidth={2} name="P50" />
-            <Line type="monotone" dataKey="p97" stroke="#d9d2c4" dot={false} strokeDasharray="3 3" name="P97" />
+            <Line type="monotone" dataKey="p3" stroke={dark ? '#6b6355' : '#d9d2c4'} dot={false} strokeDasharray="3 3" name="P3" />
+            <Line type="monotone" dataKey="p50" stroke={dark ? '#8aa98e' : '#a8c3ab'} dot={false} strokeWidth={2} name="P50" />
+            <Line type="monotone" dataKey="p97" stroke={dark ? '#6b6355' : '#d9d2c4'} dot={false} strokeDasharray="3 3" name="P97" />
             <Line
               type="monotone"
               dataKey="value"
@@ -181,7 +183,7 @@ function AddMeasurement({ childId, kind, onClose }: { childId: EntityId; kind: G
         type="datetime-local"
         value={at}
         onChange={(e) => setAt(e.target.value)}
-        className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+        className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
       />
       <button onClick={save} className="btn-gold w-full !py-4">
         Save measurement
@@ -254,7 +256,7 @@ function Milestones({ childId }: { childId: EntityId }) {
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder="e.g. First steps"
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <label className="block text-xs font-bold text-muted">When</label>
           <DateTimeField value={at} onChange={setAt} />
@@ -335,28 +337,28 @@ function Health({ childId }: { childId: EntityId }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={kind === 'vaccine' ? 'Vaccine name' : kind === 'medication' ? 'Medicine name' : 'Record title'}
-          className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+          className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
         />
         {kind !== 'vaccine' && (
           <input
             value={detail}
             onChange={(e) => setDetail(e.target.value)}
             placeholder={kind === 'medication' ? 'Dose (e.g. 2.5 mL)' : 'Details'}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
         )}
         <input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Notes (optional)"
-          className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+          className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
         />
         <label className="block text-xs font-bold text-muted">Date</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+          className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
         />
         <button onClick={save} className="btn-gold w-full">
           Save

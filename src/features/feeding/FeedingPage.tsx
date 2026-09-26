@@ -9,6 +9,7 @@ import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { NextFeedCard } from './NextFeedCard'
 import { FIRST_FOODS } from '../../domain/foods'
 import { Cog, HeartHandshake, Square, Trash2 } from 'lucide-react'
 
@@ -58,6 +59,7 @@ export function FeedingPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Feeding</h1>
+      <NextFeedCard />
       <Segmented
         value={tab}
         onChange={setTab}

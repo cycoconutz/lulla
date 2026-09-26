@@ -89,7 +89,7 @@ function Routines({ childId }: { childId: EntityId }) {
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder="e.g. Evening walk"
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <button onClick={addCustom} className="btn-gold w-full !py-4">
             Add & log now
@@ -198,14 +198,14 @@ function Memories({ childId }: { childId: EntityId }) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. First smile!"
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Notes…"
             rows={3}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           {photoData && (
             <p className="flex items-center gap-1 text-xs font-bold text-sage-deep"><Camera className="h-3.5 w-3.5" aria-hidden /> Photo attached</p>

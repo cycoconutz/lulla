@@ -112,7 +112,7 @@ function Bar({ label, minutes, color }: { label: string; minutes: number; color:
         <span className="text-muted">{label}</span>
         <span className="tabular-nums">{fmtH(minutes)}</span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white/70">
+      <div className="h-2.5 overflow-hidden rounded-full bg-ink/10">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>

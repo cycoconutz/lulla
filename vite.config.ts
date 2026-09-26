@@ -1,11 +1,29 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * Auto-version "0.1.<commit-count>" so each feature push to main shows a new
+ * number in the app. Falls back to the static package.json version when git
+ * isn't available (e.g. tarball builds).
+ */
+function appVersion(): string {
+  try {
+    const count = execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim()
+    if (/\d+/.test(count)) return `0.1.${count.replace(/[^\d]/g, '')}`
+  } catch {
+    // git unavailable — fall through
+  }
+  return '0.1.0'
+}
+
+const APP_VERSION = appVersion()
+
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify('0.1.0'),
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
   },
   base: './',
   plugins: [

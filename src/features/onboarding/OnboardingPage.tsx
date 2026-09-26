@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { addChild, listChildren, getSettings, upsertHousehold } from '../../domain/repositories'
 import { MoonLogo } from '../../components/Logo'
+import { useApplyTheme } from '../../hooks/useTheme'
 
 const COLORS = ['#d9a441', '#8aa98e', '#e8b4a0', '#c9a7d8', '#8fb8c9']
 
 export function OnboardingPage() {
+  useApplyTheme()
   const navigate = useNavigate()
   const children = useLiveQuery(listChildren, [], [])
   const existing = (children ?? []).length > 0
@@ -68,14 +70,14 @@ export function OnboardingPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <label className="block text-xs font-bold text-muted">Birth date</label>
           <input
             type="date"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
           <div className="flex gap-1 rounded-2xl bg-sand p-1">
             {(['girl', 'boy'] as const).map((s) => (
@@ -83,7 +85,7 @@ export function OnboardingPage() {
                 key={s}
                 type="button"
                 onClick={() => setSex(s)}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-bold transition ${sex === s ? 'bg-white text-ink shadow-sm' : 'text-muted'}`}
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-bold transition ${sex === s ? 'bg-paper text-ink shadow-sm' : 'text-muted'}`}
               >
                 {s === 'girl' ? 'Girl' : 'Boy'}
               </button>
@@ -106,7 +108,7 @@ export function OnboardingPage() {
             value={caregivers}
             onChange={(e) => setCaregivers(e.target.value)}
             placeholder="Mum, Dad, Nana… (comma separated)"
-            className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+            className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
           />
         </div>
       )}

@@ -15,7 +15,7 @@ export function Stepper({
 }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v * 100) / 100))
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-ink/10 bg-white px-3 py-2">
+    <div className="flex items-center justify-between rounded-2xl border border-ink/10 bg-paper px-3 py-2">
       <button
         type="button"
         onClick={() => onChange(clamp(value - step))}

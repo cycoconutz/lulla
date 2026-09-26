@@ -11,6 +11,7 @@ import { syncPushSchedule } from '../domain/push'
 import { getPushCred } from '../domain/pushCred'
 import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
+import { useApplyTheme } from '../hooks/useTheme'
 import { openSyncEvents } from '../sync/live'
 import { Sun, Milk, Moon, Baby, TrendingUp, Repeat, BarChart3, Heart, BookOpen, Coffee, Settings, type LucideIcon } from 'lucide-react'
 
@@ -27,6 +28,7 @@ const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
 ]
 
 export function AppLayoutPage() {
+  useApplyTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const childrenCount = useLiveQuery(async () => (await listChildren()).length, [], undefined)

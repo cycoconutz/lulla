@@ -178,6 +178,8 @@ export interface WakeWindowRule {
   napCount?: number
 }
 
+export type Theme = 'light' | 'dark'
+
 export interface Settings {
   id?: EntityId
   unitsVolume: 'oz' | 'ml'
@@ -186,6 +188,7 @@ export interface Settings {
   reminders: ReminderRule[]
   wakeWindows: WakeWindowRule[]
   quietHours?: QuietHours | null
+  theme?: Theme
   sync?: SyncState
 }
 
