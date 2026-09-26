@@ -36,16 +36,23 @@ function toWire(kind: SyncKind, row: AnyRow): SyncRecordWire | null {
 }
 
 /**
- * One-time adoption: guarantee every row in the synced stores has a string
- * uuid id and an `updatedAt` so full-push LWW works. Rekeys numeric-id rows
- * (keeping scanner/history queries stable by their existing indexes) and
- * remaps childId references after children are rekeyed.
+ * Id adoption: guarantee every row in the synced stores has a string uuid id
+ * and an `updatedAt` so full-push LWW works. Rekeys numeric-id rows (keeping
+ * scanner/history queries stable by their existing indexes) and remaps childId
+ * references after children are rekeyed.
+ *
+ * Row-driven, not flag-driven: it repairs whatever still carries a numeric id
+ * instead of trusting a one-shot marker. It used to return early on
+ * `sync.adopted`, but the store's household `_adopt()` writes that same field,
+ * so a household lookup could set it before the user had onboarded a child —
+ * after which that child's numeric id was never rekeyed and `pushLocalState`
+ * dropped it from every push, silently, for the life of the install. The
+ * marker is now `idsAdopted`, which only this function writes.
  */
 export async function adoptForSync(): Promise<void> {
   const settings = await getSettings()
-  if (settings.sync?.adopted) return
-
   const childMap = new Map<number, string>()
+  let rekeyed = false
 
   // Children first so events/measurements/medical can remap numeric childIds.
   const children = await db.children.toArray()
@@ -54,10 +61,11 @@ export async function adoptForSync(): Promise<void> {
       const oldId = c.id
       const nu = newId()
       childMap.set(oldId, nu)
+      rekeyed = true
       await db.children.put({ ...c, id: nu, updatedAt: c.updatedAt ?? nowIso() })
       await db.children.delete(oldId)
-    } else {
-      await db.children.put({ ...c, updatedAt: c.updatedAt ?? nowIso() })
+    } else if (!c.updatedAt) {
+      await db.children.put({ ...c, updatedAt: nowIso() })
     }
   }
 
@@ -72,9 +80,10 @@ export async function adoptForSync(): Promise<void> {
       }
       if (typeof row.id === 'number') {
         const nu = newId()
+        rekeyed = true
         await table.put({ ...next, id: nu })
         await table.delete(row.id)
-      } else {
+      } else if (!row.updatedAt) {
         await table.put(next)
       }
     }
@@ -85,9 +94,12 @@ export async function adoptForSync(): Promise<void> {
   await rekey('medical')
   await rekey('parents', false)
 
+  // Nothing to repair and already recorded: skip the settings write.
+  if (!rekeyed && settings.sync?.idsAdopted) return
+
   await saveSettings({
     ...settings,
-    sync: { ...(settings.sync ?? ({} as SyncState)), adopted: true },
+    sync: { ...(settings.sync ?? ({} as SyncState)), idsAdopted: true },
   })
 }
 
@@ -105,7 +117,13 @@ export async function pushLocalState(token: string, sync: SyncState): Promise<vo
     for (const raw of rows) {
       const row = asRow(raw)
       const wire = toWire(kind, row)
-      if (!wire || typeof row.id !== 'string') continue
+      if (!wire) continue
+      if (typeof row.id !== 'string') {
+        // Unreachable: runSync adopts ids before every push, and adoptForSync
+        // is row-driven, so nothing numeric survives to here. Kept as a guard
+        // because this is the one skip that would lose a row with no error.
+        continue
+      }
       const key = `${kind}:${row.id}`
       seen.add(key)
       if (JSON.stringify(snapshot[key]) === JSON.stringify(row)) continue // unchanged since last push

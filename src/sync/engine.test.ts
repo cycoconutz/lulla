@@ -121,7 +121,7 @@ describe('adoptForSync', () => {
     expect(event.updatedAt).toBeTruthy()
 
     const s1 = await (await import('../domain/repositories')).getSettings()
-    expect(s1.sync?.adopted).toBe(true)
+    expect(s1.sync?.idsAdopted).toBe(true)
 
     // Idempotent: a second run leaves ids untouched.
     const childIdBefore = child.id
@@ -132,6 +132,36 @@ describe('adoptForSync', () => {
   it('leaves an empty database alone', async () => {
     await adoptForSync()
     expect(await db.children.count()).toBe(0)
+  })
+
+  it('still rekeys a numeric child when the store already adopted a household', async () => {
+    // Regression: household adoption used to set `sync.adopted`, which this
+    // function treated as "ids already adopted". A child onboarded after that
+    // kept its numeric id and pushLocalState dropped it from every push, so
+    // the owner's child never reached the server.
+    await seedChild(1 as never)
+    const { getSettings } = await import('../domain/repositories')
+    const s = await getSettings()
+    await saveSettings({ ...s, sync: { ...(s.sync as SyncState), adopted: true } })
+
+    await adoptForSync()
+
+    const children = await db.children.toArray()
+    expect(children).toHaveLength(1)
+    expect(typeof children[0].id).toBe('string')
+    const after = await getSettings()
+    expect(after.sync?.adopted).toBe(true)
+    expect(after.sync?.idsAdopted).toBe(true)
+  })
+
+  it('rekeys a child added after an earlier adoption', async () => {
+    await adoptForSync()
+    await seedChild(1 as never)
+
+    await adoptForSync()
+
+    const children = await db.children.toArray()
+    expect(typeof children[0].id).toBe('string')
   })
 })
 

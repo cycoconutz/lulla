@@ -205,7 +205,11 @@ export interface SyncState {
   inviteCode?: string
   lastSyncAt?: string
   cursor?: number
+  /** Set by the store once a household overview has been adopted. Not the
+   *  id-adoption marker — that is `idsAdopted`, owned by the sync engine. */
   adopted?: boolean
+  /** Set once every synced row has a string uuid id, so pushes never skip. */
+  idsAdopted?: boolean
   error?: string
   /** Local deletions awaiting a successful push; cleared on the next sync. */
   pendingDeletes?: { id: string; updatedAt: string }[]
