@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.26",
+    "date": "2026-09-26",
+    "title": "full clone depth so version and changelog derive from real history",
+    "sha": "a3f6f0f70cde6d71724a2e8b436cb623ac15f8fc"
+  },
+  {
+    "version": "0.1.25",
+    "date": "2026-09-26",
+    "title": "add @types/node; add changelog page auto-generated from git",
+    "sha": "75cc7b103403d278df4cdb90649fad96180e9330"
+  },
+  {
     "version": "0.1.24",
     "date": "2026-09-26",
     "title": "dark mode, next-feed prediction, and auto versioning",

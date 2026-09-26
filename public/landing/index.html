@@ -1,0 +1,1674 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5efe6" />
+    <meta
+      name="description"
+      content="Lulla — a calm, local-first baby & parent tracker. Feeding, sleep, diapers, growth, routines and more, all on your device."
+    />
+    <title>Lulla — A calm, private baby &amp; parent tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f5efe6'/%3E%3Cpath d='M41 12.5A17 17 0 1 1 22.5 34 13 13 0 0 0 41 12.5z' fill='%23d9a441'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --cream: #fbf7f0;
+        --sand: #f5efe6;
+        --ink: #3a3226;
+        --muted: #8b7f6f;
+        --gold: #d9a441;
+        --gold-deep: #b98a2c;
+        --sage: #8aa98e;
+        --sage-deep: #6f8f74;
+        --rose: #e8b4a0;
+        --rose-deep: #c98d74;
+        --shadow-sm: 0 1px 2px rgba(58, 50, 38, 0.05), 0 4px 14px rgba(58, 50, 38, 0.05);
+        --shadow-md: 0 8px 30px rgba(58, 50, 38, 0.1);
+        --radius: 1.5rem;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        margin: 0;
+        background: var(--cream);
+        color: var(--ink);
+        font-family: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+
+      /* ---------- Buttons ---------- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border: 0;
+        border-radius: 1.25rem;
+        padding: 0.9rem 1.5rem;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: background 0.2s var(--ease), transform 0.15s var(--ease), box-shadow 0.2s var(--ease);
+        white-space: nowrap;
+      }
+
+      .btn:active {
+        transform: scale(0.97);
+      }
+
+      .btn-gold {
+        background: var(--gold);
+        color: #fff;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-gold:hover {
+        background: var(--gold-deep);
+      }
+
+      .btn-moon {
+        background: #3a3226;
+        color: var(--cream);
+        box-shadow: 0 2px 10px rgba(58, 50, 38, 0.18);
+      }
+
+      .btn-moon:hover {
+        background: #2c261c;
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--ink);
+        border: 2px solid rgba(58, 50, 38, 0.1);
+      }
+
+      .btn-outline:hover {
+        border-color: rgba(58, 50, 38, 0.25);
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .btn-lg {
+        padding: 1.05rem 1.9rem;
+        font-size: 1.05rem;
+      }
+
+      /* ---------- Nav ---------- */
+      .site-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(251, 247, 240, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--sand);
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        height: 70px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .brand-name {
+        font-size: 1.3rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+      }
+
+      .nav-links a {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--muted);
+        transition: color 0.2s;
+      }
+
+      .nav-links a:hover {
+        color: var(--ink);
+      }
+
+      .nav-cta {
+        padding: 0.65rem 1.1rem;
+        font-size: 0.9rem;
+        border-radius: 1rem;
+      }
+
+      input[type='email'],
+      input[type='text'],
+      textarea {
+        font-family: inherit;
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        padding: 5rem 0 3rem;
+      }
+
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .hero-bg .orbit {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.55;
+      }
+
+      .hero-bg .o1 {
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle at 35% 35%, #f5efe6, rgba(245, 239, 230, 0));
+        top: -140px;
+        right: -80px;
+      }
+
+      .hero-bg .o2 {
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle at 65% 30%, rgba(232, 180, 160, 0.35), rgba(232, 180, 160, 0));
+        bottom: -60px;
+        left: -120px;
+      }
+
+      .hero-bg .o3 {
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(circle at 40% 60%, rgba(138, 169, 142, 0.28), rgba(138, 169, 142, 0));
+        top: 12%;
+        left: 44%;
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        align-items: center;
+        gap: 3rem;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid rgba(58, 50, 38, 0.1);
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.4rem 0.9rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+
+      .hero h1 {
+        margin: 1.25rem 0 1rem;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        line-height: 1.05;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+
+      .hero h1 em {
+        font-style: normal;
+        color: var(--gold-deep);
+      }
+
+      .hero p.lead {
+        max-width: 34rem;
+        font-size: 1.2rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .hero-ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 2rem;
+      }
+
+      .hero-trust {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 1.75rem;
+      }
+
+      .trust-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid rgba(58, 50, 38, 0.1);
+        background: #fff;
+        border-radius: 999px;
+        padding: 0.45rem 0.85rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .trust-chip svg {
+        color: var(--sage-deep);
+      }
+
+      /* ---------- Phone mockup ---------- */
+      .hero-visual {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        padding: 1rem 0;
+      }
+
+      .phone {
+        width: min(340px, 88%);
+        border-radius: 3rem;
+        background: var(--sand);
+        border: 6px solid rgba(58, 50, 38, 0.9);
+        box-shadow: var(--shadow-md), 0 24px 60px rgba(58, 50, 38, 0.16);
+        padding: 0.9rem;
+        transform: rotate(1.5deg);
+      }
+
+      .screen {
+        border-radius: 2.25rem;
+        background: var(--cream);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 600px;
+        border: 1px solid rgba(58, 50, 38, 0.06);
+      }
+
+      .screen-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 1.1rem 0.6rem;
+      }
+
+      .screen-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 900;
+        font-size: 1rem;
+        letter-spacing: -0.02em;
+      }
+
+      .screen-head .gear {
+        width: 1.15rem;
+        height: 1.15rem;
+        color: var(--muted);
+      }
+
+      .screen-body {
+        padding: 0 1.1rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        flex: 1;
+      }
+
+      .greet h4 {
+        font-size: 1.35rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .greet p {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .nap-card {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        border-radius: 1.1rem;
+        background: rgba(232, 180, 160, 0.14);
+        border: 1px solid rgba(232, 180, 160, 0.5);
+        padding: 0.65rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--rose-deep);
+      }
+
+      .nap-card svg {
+        flex-shrink: 0;
+      }
+
+      .status-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+      }
+
+      .status-card {
+        background: #fff;
+        border: 1px solid var(--sand);
+        border-radius: 1rem;
+        padding: 0.6rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .status-card .lbl {
+        font-size: 0.58rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+
+      .status-card .val {
+        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .quick-title {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+      }
+
+      .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+      }
+
+      .quick-tile {
+        border-radius: 1rem;
+        border: 1px solid var(--sand);
+        padding: 0.7rem;
+        color: var(--ink);
+      }
+
+      .quick-tile svg {
+        width: 1.2rem;
+        height: 1.2rem;
+      }
+
+      .quick-tile span {
+        display: block;
+        margin-top: 0.4rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .t-gold {
+        background: linear-gradient(to bottom, rgba(217, 164, 65, 0.22), rgba(217, 164, 65, 0.05));
+      }
+
+      .t-rose {
+        background: linear-gradient(to bottom, rgba(232, 180, 160, 0.22), rgba(232, 180, 160, 0.05));
+      }
+
+      .t-sage {
+        background: linear-gradient(to bottom, rgba(138, 169, 142, 0.22), rgba(138, 169, 142, 0.05));
+      }
+
+      .today-card {
+        background: #fff;
+        border: 1px solid var(--sand);
+        border-radius: 1rem;
+        padding: 0.7rem 0.8rem;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .today-card .cap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .today-card .cap .more {
+        font-size: 0.62rem;
+        font-weight: 800;
+        color: var(--gold-deep);
+      }
+
+      .today-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        padding: 0.2rem 0;
+      }
+
+      .today-row span:first-child {
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .today-row span:last-child {
+        font-weight: 800;
+      }
+
+      .screen-foot {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.7rem 0 1rem;
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .float-card {
+        position: absolute;
+        background: #fff;
+        border: 1px solid var(--sand);
+        border-radius: 1.1rem;
+        box-shadow: var(--shadow-md);
+        padding: 0.7rem 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 800;
+      }
+
+      .float-card small {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .fc-sleep {
+        top: 9%;
+        right: 2%;
+        animation: bob 5s var(--ease) infinite;
+      }
+
+      .fc-grow {
+        bottom: 24%;
+        left: 0%;
+        animation: bob 6s var(--ease) infinite 0.8s;
+      }
+
+      .fc-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.7rem;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        flex-shrink: 0;
+      }
+
+      .fc-icon.rose {
+        background: var(--rose-deep);
+      }
+
+      .fc-icon.sage {
+        background: var(--sage-deep);
+      }
+
+      @keyframes bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      /* ---------- Sections shared ---------- */
+      section {
+        padding: 5.5rem 0;
+      }
+
+      .sec-head {
+        max-width: 40rem;
+        margin: 0 auto 3rem;
+        text-align: center;
+      }
+
+      .sec-head h2 {
+        font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+
+      .sec-head p {
+        margin-top: 0.9rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--gold-deep);
+        margin-bottom: 0.9rem;
+      }
+
+      /* ---------- Features grid ---------- */
+      .features-alt {
+        background: #fff;
+        border-top: 1px solid var(--sand);
+        border-bottom: 1px solid var(--sand);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+      }
+
+      .feature {
+        background: var(--cream);
+        border: 1px solid var(--sand);
+        border-radius: var(--radius);
+        padding: 1.6rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+      }
+
+      .feature:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+      }
+
+      .feature .tile {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 1rem;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1.1rem;
+        border: 1px solid rgba(58, 50, 38, 0.06);
+      }
+
+      .feature h3 {
+        font-size: 1.1rem;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+
+      .feature p {
+        margin-top: 0.45rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .tile-gold {
+        background: linear-gradient(to bottom, rgba(217, 164, 65, 0.24), rgba(217, 164, 65, 0.06));
+        color: var(--gold-deep);
+      }
+
+      .tile-sage {
+        background: linear-gradient(to bottom, rgba(138, 169, 142, 0.24), rgba(138, 169, 142, 0.06));
+        color: var(--sage-deep);
+      }
+
+      .tile-rose {
+        background: linear-gradient(to bottom, rgba(232, 180, 160, 0.24), rgba(232, 180, 160, 0.06));
+        color: var(--rose-deep);
+      }
+
+      /* ---------- Beauty strip ---------- */
+      .beauty {
+        padding: 0;
+      }
+
+      .beauty-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--sand);
+        border-radius: var(--radius);
+        overflow: hidden;
+        border: 1px solid var(--sand);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .stat {
+        background: #fff;
+        padding: 2rem 1.5rem;
+        text-align: center;
+      }
+
+      .stat b {
+        display: block;
+        font-size: 1.85rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+      }
+
+      .stat span {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      /* ---------- Why / privacy ---------- */
+      .why-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+      }
+
+      .why-copy h2 {
+        font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+        font-weight: 900;
+        letter-spacing: -0.025em;
+        line-height: 1.12;
+      }
+
+      .why-copy > p {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .why-card {
+        background: #fff;
+        border: 1px solid var(--sand);
+        border-radius: 1.25rem;
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        gap: 0.9rem;
+        align-items: flex-start;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.25s var(--ease);
+      }
+
+      .why-card:hover {
+        transform: translateX(4px);
+      }
+
+      .why-icon {
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 0.85rem;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        color: var(--gold-deep);
+        background: linear-gradient(to bottom, rgba(217, 164, 65, 0.2), rgba(217, 164, 65, 0.05));
+      }
+
+      .why-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .why-card h4 {
+        font-size: 1rem;
+        font-weight: 900;
+      }
+
+      .why-card p {
+        margin-top: 0.2rem;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .why-note {
+        margin-top: 1.25rem;
+        padding: 1rem 1.25rem;
+        border-radius: 1.25rem;
+        background: rgba(138, 169, 142, 0.12);
+        border: 1px solid rgba(138, 169, 142, 0.4);
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--sage-deep);
+      }
+
+      /* ---------- How ---------- */
+      .how-bg {
+        background: var(--sand);
+        border-top: 1px solid rgba(58, 50, 38, 0.06);
+        border-bottom: 1px solid rgba(58, 50, 38, 0.06);
+      }
+
+      .how-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        counter-reset: step;
+      }
+
+      .step {
+        position: relative;
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 2rem 1.75rem;
+        border: 1px solid rgba(58, 50, 38, 0.06);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .step-num {
+        font-size: 0.8rem;
+        font-weight: 900;
+        color: var(--gold-deep);
+        letter-spacing: 0.08em;
+      }
+
+      .step svg {
+        width: 2rem;
+        height: 2rem;
+        color: var(--ink);
+        margin: 1rem 0 0.9rem;
+      }
+
+      .step h3 {
+        font-size: 1.15rem;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+
+      .step p {
+        margin-top: 0.45rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      /* ---------- Free / pricing ---------- */
+      .free-card {
+        background: linear-gradient(135deg, #fbf7f0, #f5efe6);
+        border: 1px solid var(--sand);
+        border-radius: 2rem;
+        padding: 3rem 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .free-card::before {
+        content: '';
+        position: absolute;
+        width: 260px;
+        height: 260px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, rgba(217, 164, 65, 0.16), rgba(217, 164, 65, 0));
+        top: -90px;
+        left: -70px;
+      }
+
+      .free-card::after {
+        content: '';
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 60% 60%, rgba(232, 180, 160, 0.2), rgba(232, 180, 160, 0));
+        bottom: -80px;
+        right: -50px;
+      }
+
+      .free-card > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .free-card h2 {
+        font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+        font-weight: 900;
+        letter-spacing: -0.025em;
+      }
+
+      .free-card .price {
+        margin: 0.4rem 0 0.2rem;
+        font-size: 2.4rem;
+        font-weight: 900;
+        color: var(--gold-deep);
+      }
+
+      .free-card p.tag {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--muted);
+        max-width: 30rem;
+        margin: 0 auto;
+      }
+
+      .free-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.65rem;
+        margin: 1.75rem 0 2rem;
+      }
+
+      .free-list .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #fff;
+        border: 1px solid rgba(58, 50, 38, 0.1);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 800;
+      }
+
+      .free-list .chip svg {
+        color: var(--sage-deep);
+      }
+
+      /* ---------- Contact ---------- */
+      .contact-grid {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 3rem;
+        align-items: start;
+      }
+
+      .contact-copy h2 {
+        font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+        font-weight: 900;
+        letter-spacing: -0.025em;
+      }
+
+      .contact-copy p {
+        margin-top: 1rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .contact-card {
+        background: #fff;
+        border: 1px solid var(--sand);
+        border-radius: 2rem;
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--ink);
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        border: 1px solid rgba(58, 50, 38, 0.12);
+        background: var(--cream);
+        border-radius: 1rem;
+        padding: 0.85rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--ink);
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .field textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
+
+      .field input:focus,
+      .field textarea:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 3px rgba(217, 164, 65, 0.18);
+      }
+
+      .form-note {
+        margin-top: 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .form-status {
+        margin-top: 1rem;
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: var(--sage-deep);
+      }
+
+      /* ---------- Footer ---------- */
+      footer {
+        border-top: 1px solid var(--sand);
+        background: #fff;
+        padding: 3rem 0 2.5rem;
+      }
+
+      .foot-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .foot-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .foot-top .brand {
+        gap: 0.5rem;
+      }
+
+      .foot-tag {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--muted);
+        max-width: 30rem;
+      }
+
+      .foot-link {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--gold-deep);
+      }
+
+      .foot-link:hover {
+        text-decoration: underline;
+      }
+
+      .foot-note {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        line-height: 1.7;
+        border-top: 1px solid var(--sand);
+        padding-top: 1.5rem;
+      }
+
+      /* ---------- Reveal ---------- */
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+      }
+
+      .reveal.in {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .reveal {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+
+        .float-card,
+        .phone {
+          animation: none !important;
+          transform: none !important;
+        }
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 980px) {
+        .hero-inner {
+          grid-template-columns: 1fr;
+          gap: 2.5rem;
+        }
+
+        .hero-visual {
+          order: -1;
+        }
+
+        .feature-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .why-grid {
+          grid-template-columns: 1fr;
+          gap: 2.25rem;
+        }
+
+        .contact-grid {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .nav-links {
+          display: none;
+        }
+
+        section {
+          padding: 4rem 0;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .how-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .beauty-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .phone {
+          transform: none;
+        }
+
+        .fc-sleep {
+          right: -2%;
+        }
+
+        .fc-grow {
+          left: -2%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============ NAV ============ -->
+    <header class="site-nav">
+      <div class="wrap nav-inner">
+        <a class="brand" href="#top" aria-label="Lulla home">
+          <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+            <rect width="64" height="64" rx="14" fill="#f5efe6" />
+            <path d="M41 12.5A17 17 0 1 1 22.5 34 13 13 0 0 0 41 12.5z" fill="#d9a441" />
+          </svg>
+          <span class="brand-name">lulla</span>
+        </a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#features">Features</a>
+          <a href="#why">Privacy</a>
+          <a href="#how">How it works</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <a class="btn btn-moon nav-cta" href="/">
+          Open the app
+        </a>
+      </div>
+    </header>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="orbit o1"></div>
+        <div class="orbit o2"></div>
+        <div class="orbit o3"></div>
+      </div>
+
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow"><span class="dot"></span> Baby &amp; parent tracker</span>
+          <h1>
+            A calm home for <em>every little day</em>.
+          </h1>
+          <p class="lead">
+            Feeding, sleep, diapers, growth and more — logged in one tap, kept on your device, and
+            totally private. Built for tired hands and sleepy brains.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn btn-gold btn-lg" href="/">
+              Get the app
+            </a>
+            <a class="btn btn-outline btn-lg" href="#features">See the features</a>
+          </div>
+          <div class="hero-trust">
+            <span class="trust-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12.67 19a2 2 0 0 0 1.416-.588l6.154-6.172a6 6 0 0 0-8.49-8.49L5.586 9.914A2 2 0 0 0 5 11.328V18a1 1 0 0 0 1 1z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/></svg>
+              No accounts
+            </span>
+            <span class="trust-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+              No ads
+            </span>
+            <span class="trust-chip">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+              Data stays on your device
+            </span>
+          </div>
+        </div>
+
+        <!-- ============ PHONE MOCKUP ============ -->
+        <div class="hero-visual" aria-hidden="true">
+          <div class="phone">
+            <div class="screen">
+              <div class="screen-head">
+                <div class="screen-brand">
+                  <svg viewBox="0 0 64 64" width="24" height="24">
+                    <rect width="64" height="64" rx="14" fill="#f5efe6" />
+                    <path d="M41 12.5A17 17 0 1 1 22.5 34 13 13 0 0 0 41 12.5z" fill="#d9a441" />
+                  </svg>
+                  lulla
+                </div>
+                <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+              </div>
+              <div class="screen-body">
+                <div class="greet">
+                  <h4>Hi, Amara</h4>
+                  <p>4 months old</p>
+                </div>
+
+                <div class="nap-card">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6"/><path d="m22 6-3-3"/></svg>
+                  Awake 2h 10m — due for a nap soon
+                </div>
+
+                <div class="status-row">
+                  <div class="status-card">
+                    <p class="lbl">Last feed</p>
+                    <p class="val">35m ago</p>
+                  </div>
+                  <div class="status-card">
+                    <p class="lbl">Last sleep</p>
+                    <p class="val">woke 2h ago</p>
+                  </div>
+                  <div class="status-card">
+                    <p class="lbl">Last diaper</p>
+                    <p class="val">45m ago</p>
+                  </div>
+                </div>
+
+                <p class="quick-title">Quick log</p>
+                <div class="quick-grid">
+                  <div class="quick-tile t-gold">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.789V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
+                    <span>Feeding</span>
+                  </div>
+                  <div class="quick-tile t-rose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    <span>Sleep</span>
+                  </div>
+                  <div class="quick-tile t-sage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+                    <span>Diaper</span>
+                  </div>
+                  <div class="quick-tile t-sage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                    <span>Growth</span>
+                  </div>
+                  <div class="quick-tile t-rose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+                    <span>Routine</span>
+                  </div>
+                  <div class="quick-tile t-gold">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                    <span>Trends</span>
+                  </div>
+                </div>
+
+                <div class="today-card">
+                  <div class="cap">
+                    <span class="quick-title">Today</span>
+                    <span class="more">Trends →</span>
+                  </div>
+                  <div class="today-row"><span>Feeds</span><span>6</span></div>
+                  <div class="today-row"><span>Breast</span><span>42m</span></div>
+                  <div class="today-row"><span>Sleep</span><span>12h 40m</span></div>
+                  <div class="today-row"><span>Diapers</span><span>7 (2 dirty)</span></div>
+                </div>
+              </div>
+              <div class="screen-foot">
+                <svg viewBox="0 0 64 64" width="15" height="15">
+                  <rect width="64" height="64" rx="14" fill="#f5efe6" />
+                  <path d="M41 12.5A17 17 0 1 1 22.5 34 13 13 0 0 0 41 12.5z" fill="#d9a441" />
+                </svg>
+                Data never leaves this device
+              </div>
+            </div>
+          </div>
+
+          <div class="float-card fc-sleep">
+            <span class="fc-icon rose">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </span>
+            <span>Sleeping · 2h 06m<small>nap timer running</small></span>
+          </div>
+
+          <div class="float-card fc-grow">
+            <span class="fc-icon sage">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            <span>+1.9 lb this month<small>on the WHO curve</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="features-alt" id="features">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">Everything in one place</span>
+          <h2>Everything you're already juggling, in one calm log.</h2>
+          <p>No more guessing who ate last or digging through photos for when. Lulla puts your whole day at your fingertips.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature reveal">
+            <div class="tile tile-gold">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.789V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
+            </div>
+            <h3>Feeding</h3>
+            <p>Breast with a live timer for each side, bottles, pumping and solids — all in one tap.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-rose">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </div>
+            <h3>Sleep</h3>
+            <p>Start and stop timers with one hand, wake-window hints, and clean nap vs night history.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-sage">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+            </div>
+            <h3>Diapers</h3>
+            <p>Wet, dirty, pee or poop — one tap for a quick count, or drop into the full details.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-sage">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <h3>Growth</h3>
+            <p>Weight, length and head charts against WHO percentiles, plus milestones and medications.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-rose">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+            </div>
+            <h3>Routine &amp; firsts</h3>
+            <p>Day summaries, routines and first memories — with photos that stay under your control.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-gold">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            </div>
+            <h3>Trends</h3>
+            <p>The last 7 days at a glance, so feedings, naps and moods surface patterns in seconds.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-sage">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </div>
+            <h3>Mom</h3>
+            <p>Pregnancy, labor and postpartum tracking, for the other half of the pair.</p>
+          </article>
+
+          <article class="feature reveal">
+            <div class="tile tile-gold">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+            </div>
+            <h3>Guides</h3>
+            <p>Age-indexed parenting guides that show up right when you need them.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STAT STRIP ============ -->
+    <section class="beauty">
+      <div class="wrap">
+        <div class="beauty-strip reveal">
+          <div class="stat">
+            <b>0%</b>
+            <span>of your data touches a server</span>
+          </div>
+          <div class="stat">
+            <b>&lt;1s</b>
+            <span>to log most entries</span>
+          </div>
+          <div class="stat">
+            <b>24/7</b>
+            <span>works offline, even at 3am</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ WHY / PRIVACY ============ -->
+    <section id="why">
+      <div class="wrap why-grid">
+        <div class="why-copy reveal">
+          <span class="kicker">Why Lulla</span>
+          <h2>Private by design. Calm by default.</h2>
+          <p>
+            No accounts, no ads, no cloud snooping. Lulla keeps everything on your device, so your
+            family's data belongs to your family — nothing more.
+          </p>
+        </div>
+
+        <div class="why-stack">
+          <div class="why-card reveal">
+            <span class="why-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <div>
+              <h4>Data stays on your device</h4>
+              <p>Everything lives in your browser — not on a server you don't control.</p>
+            </div>
+          </div>
+          <div class="why-card reveal">
+            <span class="why-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8l-4-4"/><path d="m12 21 4-4"/><path d="M4.393 15.269A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.436 8.284"/></svg>
+            </span>
+            <div>
+              <h4>Export it all, anytime</h4>
+              <p>Full JSON backups and CSV exports are one tap away — your history is never held hostage.</p>
+            </div>
+          </div>
+          <div class="why-card reveal">
+            <span class="why-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+            </span>
+            <div>
+              <h4>An app, not a website</h4>
+              <p>Installable and offline-first. It opens like an app and works with no signal, no fuss.</p>
+            </div>
+          </div>
+          <div class="why-card reveal">
+            <span class="why-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>
+            </span>
+            <div>
+              <h4>Reminders that work</h4>
+              <p>Best-effort local notifications for feeds, naps and medication — with zero ad tracking.</p>
+            </div>
+          </div>
+          <div class="why-note reveal">
+            Partners sharing a household? Live sync that follows your family is on the roadmap — with
+            real accounts, only when you want them.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="how-bg" id="how">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <span class="kicker">How it works</span>
+          <h2>Up and running before the first nap.</h2>
+          <p>Three small steps — most people are logged in and logging within a minute.</p>
+        </div>
+
+        <div class="how-grid">
+          <div class="step reveal">
+            <span class="step-num">Step 01</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            <h3>Add your little one</h3>
+            <p>Name, birthday, done. Thirty seconds — yes, even one-handed.</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">Step 02</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8"/><path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.789V2"/><path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0"/></svg>
+            <h3>Log in one tap</h3>
+            <p>Feeds, sleep, diapers and growth. Tap, done, life moves on.</p>
+          </div>
+          <div class="step reveal">
+            <span class="step-num">Step 03</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            <h3>Know your day</h3>
+            <p>Wake windows, today's summary and 7-day trends surface what matters.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FREE ============ -->
+    <section>
+      <div class="wrap">
+        <div class="free-card reveal">
+          <h2>Free. Really, totally free.</h2>
+          <p class="price">$0</p>
+          <p class="tag">No subscriptions, no ads, no paywalls — just a calmer day for the ones doing the hardest job in the world.</p>
+          <div class="free-list">
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Local-first</span>
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Exportable</span>
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> No data mining</span>
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Offline ready</span>
+            <span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> WHO reference charts</span>
+          </div>
+          <a class="btn btn-gold btn-lg" href="/">Open Lulla free</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="features-alt" id="contact">
+      <div class="wrap contact-grid">
+        <div class="contact-copy reveal">
+          <span class="kicker">Contact</span>
+          <h2>Say hello. We answer.</h2>
+          <p>
+            Questions, feature ideas, or just want to tell us your favorite sleepy 3am story? Drop a
+            line — a real person reads every single note.
+          </p>
+          <div class="why-note" style="margin-top: 1.5rem">
+            <div style="display:flex;gap:0.6rem;align-items:flex-start">
+              <svg width="18" height="18" style="flex-shrink:0;color:var(--gold-deep)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <span>Prefer email? Write to us directly at <strong>johndyates@gmail.com</strong> — the form below opens your mail app all filled in.</span>
+            </div>
+          </div>
+        </div>
+
+        <form class="contact-card reveal" id="contact-form" novalidate>
+          <div class="form-row">
+            <div class="field">
+              <label for="cf-name">Your name</label>
+              <input id="cf-name" name="name" type="text" required autocomplete="name" placeholder="Chris" />
+            </div>
+            <div class="field">
+              <label for="cf-email">Your email</label>
+              <input id="cf-email" name="email" type="email" required autocomplete="email" placeholder="chris@example.com" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="cf-message">Message</label>
+            <textarea id="cf-message" name="message" required rows="5" placeholder="Tell us what's on your mind…"></textarea>
+          </div>
+          <button class="btn btn-gold" type="submit" style="width: 100%">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            Send us a note
+          </button>
+          <p class="form-note">
+            Submitting opens your email app with a note addressed to johndyates@gmail.com. No data is
+            stored on any server.
+          </p>
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+      <div class="wrap foot-inner">
+        <div class="foot-top">
+          <a class="brand" href="#top" aria-label="Lulla back to top">
+            <svg viewBox="0 0 64 64" width="34" height="34" aria-hidden="true">
+              <rect width="64" height="64" rx="14" fill="#f5efe6" />
+              <path d="M41 12.5A17 17 0 1 1 22.5 34 13 13 0 0 0 41 12.5z" fill="#d9a441" />
+            </svg>
+            <span class="brand-name">lulla</span>
+          </a>
+          <p class="foot-tag">A calm, local-first baby &amp; parent tracker for phones and desktops.</p>
+          <a class="foot-link" href="/">
+            Open the app →
+          </a>
+        </div>
+        <p class="foot-note">
+          Lulla is a parenting aid, not medical advice. Always consult a pediatrician or health
+          professional for questions about your child's or your own health.
+          <br />
+          © 2026 Lulla. All rights reserved. Made with care and very little sleep.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        // Scroll-reveal
+        var revealEls = document.querySelectorAll('.reveal')
+        if ('IntersectionObserver' in window) {
+          var io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add('in')
+                  io.unobserve(entry.target)
+                }
+              })
+            },
+            { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
+          )
+          revealEls.forEach(function (el) {
+            io.observe(el)
+          })
+        } else {
+          revealEls.forEach(function (el) {
+            el.classList.add('in')
+          })
+        }
+
+        // Contact form -> mailto
+        var form = document.getElementById('contact-form')
+        var status = document.getElementById('form-status')
+        form.addEventListener('submit', function (ev) {
+          ev.preventDefault()
+          var fd = new FormData(form)
+          var name = (fd.get('name') || '').trim()
+          var email = (fd.get('email') || '').trim()
+          var message = (fd.get('message') || '').trim()
+          if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !message) {
+            status.textContent = 'Please fill in your name, a valid email, and a message.'
+            status.style.color = 'var(--rose-deep)'
+            return
+          }
+          var subject = 'Lulla website — message from ' + name
+          var body =
+            'Hi Lulla,\n\n' +
+            message +
+            '\n\n—\n' +
+            'Name: ' + name +
+            '\nEmail: ' + email +
+            '\nSent from the Lulla landing page'
+          var mailto =
+            'mailto:johndyates@gmail.com?subject=' +
+            encodeURIComponent(subject) +
+            '&body=' +
+            encodeURIComponent(body)
+          status.textContent = 'Opening your email app…'
+          status.style.color = 'var(--sage-deep)'
+          window.location.href = mailto
+        })
+      })()
+    </script>
+  </body>
+</html>
