@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 export function Sheet({
@@ -22,7 +23,11 @@ export function Sheet({
 
   if (!open) return null
 
-  return (
+  // Portalled to <body>: the page wrapper is animated with a transform, and a
+  // non-none transform on an ancestor becomes the containing block for
+  // `position: fixed` children, which would anchor this overlay to the bottom
+  // of the page content instead of the viewport.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button
         aria-label="Close"
@@ -39,6 +44,7 @@ export function Sheet({
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
