@@ -11,6 +11,7 @@ import { TrendsPage } from './features/trends/TrendsPage'
 import { MomPage } from './features/mom/MomPage'
 import { GuidesPage } from './features/guides/GuidesPage'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { ChangelogPage } from './features/changelog/ChangelogPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/mom" element={<MomPage />} />
         <Route path="/guides" element={<GuidesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
       </Route>
     </Routes>
   )

@@ -351,6 +351,9 @@ export function SettingsPage() {
           affiliated with any existing tracker app. Not medical advice.
         </p>
         <p className="mt-2 text-xs font-bold text-ink/70">Lulla v{__APP_VERSION__}</p>
+        <a href="#/changelog" className="btn-outline mt-3 w-full">
+          <Sparkles className="h-4 w-4" aria-hidden /> What's new — changelog
+        </a>
       </section>
 
       <a
