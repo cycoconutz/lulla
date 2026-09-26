@@ -8,6 +8,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.31",
+    "date": "2026-09-26",
+    "title": "repair concatenated .gitignore rules and make the e2e harness runnable",
+    "sha": "d89238ae68c3290964e874b9e960a92ac32d243d"
+  },
+  {
+    "version": "0.1.30",
+    "date": "2026-09-26",
+    "title": "point the landing page contact form at support@lulla.dev",
+    "sha": "bccc894609d1525a15bb6a3a2dd047d62671b99f"
+  },
+  {
+    "version": "0.1.29",
+    "date": "2026-09-26",
+    "title": "rekey numeric ids row-driven so an owner's child is never dropped",
+    "sha": "4ba271b62912944c099047cf320c375be4d1445d"
+  },
+  {
     "version": "0.1.28",
     "date": "2026-09-26",
     "title": "serve the marketing landing page at /landing",

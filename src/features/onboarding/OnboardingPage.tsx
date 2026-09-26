@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addChild, listChildren, getSettings, upsertHousehold } from '../../domain/repositories'
+import { addChild, listChildren, getSettings, saveSettings, upsertHousehold } from '../../domain/repositories'
 import { MoonLogo } from '../../components/Logo'
-import { useApplyTheme } from '../../hooks/useTheme'
+import { useApplyTheme, useTheme } from '../../hooks/useTheme'
+import { Moon, Sun } from 'lucide-react'
 
 const COLORS = ['#d9a441', '#8aa98e', '#e8b4a0', '#c9a7d8', '#8fb8c9']
 
 export function OnboardingPage() {
   useApplyTheme()
+  const theme = useTheme()
   const navigate = useNavigate()
   const children = useLiveQuery(listChildren, [], [])
   const existing = (children ?? []).length > 0
@@ -48,8 +50,27 @@ export function OnboardingPage() {
     navigate('/', { replace: true })
   }
 
+  // Read through getSettings() rather than a liveQuery'd row: on a first run
+  // the settings row does not exist yet (it is created in finish()), so
+  // spreading a possibly-undefined row would make this a silent no-op on
+  // exactly the screen where the toggle is most wanted.
+  const toggleTheme = async () => {
+    const current = await getSettings()
+    await saveSettings({ ...current, theme: theme === 'dark' ? 'light' : 'dark' })
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6 py-10">
+      <button
+        onClick={() => void toggleTheme()}
+        aria-label="Dark theme"
+        aria-pressed={theme === 'dark'}
+        title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        className="fixed right-4 top-4 z-10 rounded-xl p-2 text-muted ring-1 ring-ink/10 transition hover:bg-sand active:scale-95"
+      >
+        {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+      </button>
+
       <div className="mb-8 flex flex-col items-center text-center">
         <MoonLogo className="h-14 w-14" />
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight">lulla</h1>
