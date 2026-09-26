@@ -4,6 +4,7 @@
  * cdp-run.js <url> <assertions.cjs>
  *   [--timeout-ms N]  overall limit (default 90000)
  *   [--settle-ms N]   extra wait after load (default 1800)
+ *   [--color-scheme light|dark]  override prefers-color-scheme via CDP
  *   [--width N] [--height N]   viewport (default 1280x900)
  *   [--chrome PATH]    override Chrome binary (or set CHROME_PATH)
  *   [--host-resolver-rules RULES]  pass --host-resolver-rules to Chrome (e.g. "MAP host 1.2.3.4")
@@ -66,6 +67,7 @@ const CHROME = flag("--chrome", process.env.CHROME_PATH || "");
 // Omitted entirely when unset, so ordinary runs are unchanged. TLS still validates
 // the real cert for the hostname, so scope/mixed-content checks stay meaningful.
 const HOST_RESOLVER_RULES = flag("--host-resolver-rules", "");
+const COLOR_SCHEME = flag("--color-scheme", "");
 const chromeBin = CHROME || findChrome();
 const chrome = spawn(chromeBin, [
   "--headless=new", "--disable-gpu", "--no-first-run", "--disable-extensions",
@@ -137,6 +139,16 @@ async function main() {
     const runs = [];
     let failed = false;
     const raw = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
+    // Optional prefers-color-scheme override, so a spec can exercise the branch
+    // the host OS would otherwise hide. Re-applied on reload, since reload
+    // re-evaluates matchMedia and the override must outlive it.
+    const emulateScheme = () =>
+      COLOR_SCHEME
+        ? send("Emulation.setEmulatedMedia", {
+            features: [{ name: "prefers-color-scheme", value: COLOR_SCHEME }],
+          })
+        : Promise.resolve();
+    await emulateScheme();
     const t = {
       eval: evaluate,
       evalAsync: async (expr) => evaluate(expr, true),
@@ -155,7 +167,7 @@ async function main() {
       },
       text: async (sel) => evaluate(raw(sel) + ".textContent"),
       wait: (ms) => sleep(ms),
-      reload: async () => { await send("Page.reload", { ignoreCache: true }); await once("Page.loadEventFired", 15000); await sleep(settleMs); },
+      reload: async () => { await emulateScheme(); await send("Page.reload", { ignoreCache: true }); await once("Page.loadEventFired", 15000); await sleep(settleMs); },
       shot: async (file) => {
         const r = await send("Page.captureScreenshot", { format: "png" });
         if (r.result && r.result.data) fs.writeFileSync(file, Buffer.from(r.result.data, "base64"));
