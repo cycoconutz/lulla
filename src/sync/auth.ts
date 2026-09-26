@@ -53,3 +53,50 @@ export async function signInEmail(email: string, password: string): Promise<{ ok
 export async function signOutSession(): Promise<void> {
   await authClient.signOut()
 }
+
+/** Emails a one-time password-reset code to the account address.
+ *
+ * Hit directly via fetch: the Neon adapter does not expose the email-OTP
+ * reset actions on its vanilla AuthClient, but the managed server implements
+ * these routes (verified: POST /forget-password/email-otp exists, while the
+ * classic /forget-password link flow is not deployed). */
+export async function requestPasswordReset(email: string): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await postAuth('/forget-password/email-otp', { email })
+  return error ? { ok: false, error } : { ok: true }
+}
+
+/** Completes the reset with the emailed code and a new password. */
+export async function resetPassword(email: string, otp: string, password: string): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await postAuth('/email-otp/reset-password', { email, otp, password })
+  return error ? { ok: false, error } : { ok: true }
+}
+
+async function postAuth(path: string, body: unknown): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${NEON_AUTH_BASE_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      try {
+        const parsed = JSON.parse(text) as {
+          message?: string
+          error?: { message?: string } | string
+        }
+        const msg =
+          parsed.message ??
+          (typeof parsed.error === 'string' ? parsed.error : parsed.error?.message) ??
+          `Request failed (${res.status}).`
+        return { ok: false, error: msg }
+      } catch {
+        return { ok: false, error: `Request failed (${res.status}).` }
+      }
+    }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Network error — check your connection.' }
+  }
+}

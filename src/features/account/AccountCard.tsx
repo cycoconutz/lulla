@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSyncStore } from '../../store/syncStore'
+import { requestPasswordReset, resetPassword } from '../../sync/auth'
 import { db } from '../../db/schema'
 
-type Mode = 'signin' | 'signup'
+type Mode = 'signin' | 'signup' | 'forgot'
 
 const inputCls =
   'flex-1 rounded-2xl border border-ink/10 bg-white px-4 py-2.5 text-sm font-bold outline-none focus:border-gold'
@@ -35,6 +36,14 @@ export function AccountCard() {
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetStep, setResetStep] = useState<'send' | 'code'>('send')
+  const [otp, setOtp] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [localErr, setLocalErr] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
   const sync = useLiveQuery(async () => (await db.settings.toArray())[0]?.sync, [])
 
   useEffect(() => {
@@ -57,6 +66,50 @@ export function AccountCard() {
     }
   }
 
+  const resetSend = async () => {
+    if (!resetEmail.trim()) return
+    setBusy(true)
+    setLocalErr(null)
+    setNotice(null)
+    const res = await requestPasswordReset(resetEmail.trim())
+    setBusy(false)
+    if (!res.ok) {
+      setLocalErr(res.error ?? 'Could not send a reset code.')
+      return
+    }
+    setResetStep('code')
+    setNotice(`A reset code is on its way to ${resetEmail.trim()}.`)
+  }
+
+  const resetConfirm = async () => {
+    if (!otp.trim() || !newPassword) return
+    if (newPassword.length < 8) {
+      setLocalErr('Password must be at least 8 characters.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setLocalErr('Passwords do not match.')
+      return
+    }
+    setBusy(true)
+    setLocalErr(null)
+    setNotice(null)
+    const res = await resetPassword(resetEmail.trim(), otp.trim(), newPassword)
+    setBusy(false)
+    if (!res.ok) {
+      setLocalErr(res.error ?? 'Reset failed. The code may have expired — request a new one.')
+      return
+    }
+    setMode('signin')
+    setResetStep('send')
+    setOtp('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setEmail(resetEmail.trim())
+    setPassword('')
+    setNotice('Password updated — sign in with your new password.')
+  }
+
   return (
     <section className="card space-y-3">
       <div className="flex items-center justify-between">
@@ -70,56 +123,147 @@ export function AccountCard() {
 
       {!user && (
         <div className="space-y-2">
-          <p className="text-xs leading-relaxed text-muted">
-            {mode === 'signin' ? 'Sign in to sync this device with your family.' : 'Create an account to sync this device with your family.'}
-          </p>
-          <div
-            className="flex gap-1 rounded-2xl bg-sand p-1"
-            role="tablist"
-            aria-label="Auth mode"
-          >
-            {(['signin', 'signup'] as Mode[]).map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
-                className={`flex-1 rounded-xl py-1.5 text-xs font-bold transition ${
-                  mode === m ? 'bg-white text-ink shadow-sm' : 'text-muted'
-                }`}
-              >
-                {m === 'signin' ? 'Sign in' : 'Create account'}
-              </button>
-            ))}
-          </div>
-          {mode === 'signup' && (
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              className={inputCls}
-              autoComplete="name"
-            />
+          {notice && (
+            <p className="rounded-xl bg-sage-deep/10 px-3 py-2 text-xs font-bold text-sage-deep">{notice}</p>
           )}
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            type="email"
-            className={inputCls}
-            autoComplete="email"
-          />
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password (8+ characters)"
-            type="password"
-            className={inputCls}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-          />
-          <button onClick={() => void submitAuth()} disabled={busy || !email.trim() || !password} className="btn-gold w-full disabled:opacity-40">
-            {busy ? 'One moment…' : mode === 'signin' ? 'Sign in' : 'Create account'}
-          </button>
+
+          {mode === 'forgot' && (
+            <div className="space-y-2">
+              <p className="text-xs leading-relaxed text-muted">
+                {resetStep === 'send'
+                  ? "Forgot your password? Enter your account email and we'll send a one-time reset code."
+                  : 'Enter the code from the email and choose a new password.'}
+              </p>
+              {localErr && (
+                <p className="rounded-xl bg-rose-deep/10 px-3 py-2 text-xs font-bold text-rose-deep">{localErr}</p>
+              )}
+              {resetStep === 'send' ? (
+                <input
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="Email"
+                  type="email"
+                  className={inputCls}
+                  autoComplete="email"
+                />
+              ) : (
+                <>
+                  <input
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="6-digit code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    className={inputCls}
+                  />
+                  <input
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password (8+ characters)"
+                    type="password"
+                    className={inputCls}
+                    autoComplete="new-password"
+                  />
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    type="password"
+                    className={inputCls}
+                    autoComplete="new-password"
+                  />
+                </>
+              )}
+              <button
+                onClick={() => void (resetStep === 'send' ? resetSend() : resetConfirm())}
+                disabled={busy || (resetStep === 'send' ? !resetEmail.trim() : !otp.trim() || !newPassword)}
+                className="btn-gold w-full disabled:opacity-40"
+              >
+                {busy ? 'One moment…' : resetStep === 'send' ? 'Send reset code' : 'Reset password'}
+              </button>
+              <button
+                onClick={() => {
+                  setMode('signin')
+                  setResetStep('send')
+                  setLocalErr(null)
+                }}
+                className="text-xs font-bold text-muted underline-offset-2 hover:underline"
+              >
+                Back to sign in
+              </button>
+            </div>
+          )}
+
+          {mode !== 'forgot' && (
+            <>
+              <p className="text-xs leading-relaxed text-muted">
+                {mode === 'signin' ? 'Sign in to sync this device with your family.' : 'Create an account to sync this device with your family.'}
+              </p>
+              <div
+                className="flex gap-1 rounded-2xl bg-sand p-1"
+                role="tablist"
+                aria-label="Auth mode"
+              >
+                {(['signin', 'signup'] as Mode[]).map((m) => (
+                  <button
+                    key={m}
+                    role="tab"
+                    aria-selected={mode === m}
+                    onClick={() => {
+                      setMode(m)
+                      setNotice(null)
+                    }}
+                    className={`flex-1 rounded-xl py-1.5 text-xs font-bold transition ${
+                      mode === m ? 'bg-white text-ink shadow-sm' : 'text-muted'
+                    }`}
+                  >
+                    {m === 'signin' ? 'Sign in' : 'Create account'}
+                  </button>
+                ))}
+              </div>
+              {mode === 'signup' && (
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className={inputCls}
+                  autoComplete="name"
+                />
+              )}
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                type="email"
+                className={inputCls}
+                autoComplete="email"
+              />
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (8+ characters)"
+                type="password"
+                className={inputCls}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+              />
+              <button onClick={() => void submitAuth()} disabled={busy || !email.trim() || !password} className="btn-gold w-full disabled:opacity-40">
+                {busy ? 'One moment…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+              </button>
+              {mode === 'signin' && (
+                <button
+                  onClick={() => {
+                    setResetEmail(email)
+                    setMode('forgot')
+                    setLocalErr(null)
+                    setNotice(null)
+                  }}
+                  className="text-xs font-bold text-muted underline-offset-2 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
 
