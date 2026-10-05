@@ -11,7 +11,8 @@ import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
 import { NextFeedCard } from './NextFeedCard'
 import { FIRST_FOODS } from '../../domain/foods'
-import { Cog, HeartHandshake, Square, Trash2 } from 'lucide-react'
+import { EditEntrySheet } from '../shared/EditEntrySheet'
+import { Cog, HeartHandshake, Pencil, Square, Trash2 } from 'lucide-react'
 
 type Tab = 'breast' | 'bottle' | 'pump' | 'solids'
 
@@ -25,6 +26,7 @@ export function FeedingPage() {
   const activeTimers = useUIStore((s) => s.activeTimers)
   const stopTimer = useUIStore((s) => s.stopTimer)
   const [tab, setTab] = useState<Tab>('breast')
+  const [editing, setEditing] = useState<EventRecord | null>(null)
 
   const feedEvents = (eventsToday ?? []).filter((e) => e.type === 'feeding')
 
@@ -116,8 +118,11 @@ export function FeedingPage() {
         <FeedList
           events={feedEvents.filter((e) => !(e.endedAt === undefined && 'kind' in e.payload && (e.payload.kind === 'breast' || e.payload.kind === 'pump')))}
           onDelete={(id) => void deleteEvent(id)}
+          onEdit={setEditing}
         />
       </section>
+
+      <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }
@@ -369,7 +374,15 @@ function SolidsLog({ childId }: { childId: EntityId }) {
   )
 }
 
-function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
+function FeedList({
+  events,
+  onDelete,
+  onEdit,
+}: {
+  events: EventRecord[]
+  onDelete: (id: EntityId) => void
+  onEdit: (e: EventRecord) => void
+}) {
   if (events.length === 0) {
     return <p className="text-sm text-muted">Nothing logged yet today.</p>
   }
@@ -385,13 +398,22 @@ function FeedList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: 
               {e.endedAt && ` · ${durationLabel(e)}`}
             </p>
           </div>
-          <button
-            onClick={() => e.id && onDelete(e.id)}
-            className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
-            aria-label="Delete"
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-          </button>
+          <span className="flex items-center gap-0.5">
+            <button
+              onClick={() => onEdit(e)}
+              className="rounded-xl p-2 text-muted hover:bg-sand"
+              aria-label={`Edit ${feedTitle(e.payload as FeedingPayload)} at ${formatTime(e.startedAt)}`}
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              onClick={() => e.id && onDelete(e.id)}
+              className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
+              aria-label={`Delete ${feedTitle(e.payload as FeedingPayload)} at ${formatTime(e.startedAt)}`}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+            </button>
+          </span>
         </li>
       ))}
     </ul>

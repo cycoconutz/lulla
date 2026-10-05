@@ -3,9 +3,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useTheme } from '../../hooks/useTheme'
-import { measurementsForKind, addMeasurement } from '../../domain/repositories'
-import type { EntityId, Measurement } from '../../domain/types'
-import { Syringe, Pill, ClipboardList, Trash2, Camera, Flag } from 'lucide-react'
+import {
+  measurementsForKind,
+  addMeasurement,
+  updateMeasurement,
+  deleteMeasurement,
+  updateMedicalRecord,
+  deleteMedicalRecord,
+  deleteEvent,
+} from '../../domain/repositories'
+import type { EntityId, EventRecord, Measurement, MedicalRecord } from '../../domain/types'
+import { Syringe, Pill, ClipboardList, Trash2, Camera, Flag, Pencil } from 'lucide-react'
 import {
   referenceSeries,
   percentileLabel,
@@ -18,6 +26,7 @@ import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { EditEntrySheet } from '../shared/EditEntrySheet'
 
 type Tab = 'milestones' | 'health' | 'growth'
 
@@ -163,51 +172,113 @@ function GrowthCharts({ childId, sex, birthDate }: { childId: EntityId; sex: 'bo
   )
 }
 
-function AddMeasurement({ childId, kind, onClose }: { childId: EntityId; kind: GrowthKind; onClose: () => void }) {
+function AddMeasurement({
+  childId,
+  kind,
+  onClose,
+  editing,
+}: {
+  childId: EntityId
+  kind: GrowthKind
+  onClose: () => void
+  editing?: Measurement | null
+}) {
   const isWeight = kind === 'weight'
-  const [value, setValue] = useState(isWeight ? 8 : 60)
   const step = isWeight ? 0.1 : 0.5
-  const [at, setAt] = useState<string>(new Date().toISOString().slice(0, 10) + 'T00:00:00')
   const unit = isWeight ? 'lb' : kind === 'height' ? 'in' : 'cm'
+  const [value, setValue] = useState(editing?.value ?? (isWeight ? 8 : 60))
+  const [at, setAt] = useState<string>(
+    editing ? toLocalStamp(editing.at) : new Date().toISOString().slice(0, 10) + 'T00:00:00',
+  )
+  const [error, setError] = useState<string | null>(null)
 
   const save = () => {
-    void addMeasurement({ childId, kind, value, unit, at })
+    if (!Number.isFinite(value) || value <= 0) {
+      setError('Enter a value greater than zero.')
+      return
+    }
+    const atMs = new Date(at).getTime()
+    if (!at || Number.isNaN(atMs)) {
+      setError('Enter a valid date.')
+      return
+    }
+    const atIso = new Date(atMs).toISOString()
+    if (editing?.id != null) {
+      void updateMeasurement({ ...editing, kind, value, unit, at: atIso })
+    } else {
+      void addMeasurement({ childId, kind, value, unit, at: atIso })
+    }
     onClose()
   }
 
   return (
     <div className="space-y-4">
-      <Stepper value={value} onChange={setValue} step={step} min={0} max={isWeight ? 80 : 140} suffix={unit} />
+      <Stepper value={value} onChange={(v) => { setValue(v); setError(null) }} step={step} min={0} max={isWeight ? 80 : 140} suffix={unit} />
       <label className="block text-xs font-bold text-muted">Date</label>
       <input
         type="datetime-local"
         value={at}
-        onChange={(e) => setAt(e.target.value)}
+        onChange={(e) => { setAt(e.target.value); setError(null) }}
         className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
+        aria-label="Measurement date"
       />
+      {error && (
+        <p role="alert" className="rounded-2xl bg-rose/10 px-4 py-2.5 text-sm font-bold text-rose-deep">
+          {error}
+        </p>
+      )}
       <button onClick={save} className="btn-gold w-full !py-4">
-        Save measurement
+        {editing?.id != null ? 'Save changes' : 'Save measurement'}
       </button>
     </div>
   )
 }
 
+/** `datetime-local` needs a local-time string, not the stored UTC ISO. */
+function toLocalStamp(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKind }) {
   const ms = useLiveQuery(() => measurementsForKind(childId, kind), [childId, kind], [])
+  const [editing, setEditing] = useState<Measurement | null>(null)
   const all = ms ?? []
-  if (all.length === 0) return <p className="text-sm text-muted">No {kind} measurements yet.</p>
+  if (all.length === 0 && !editing) return <p className="text-sm text-muted">No {kind} measurements yet.</p>
   const sorted = [...all].sort((a, b) => b.at.localeCompare(a.at))
   return (
-    <ul className="space-y-1.5">
-      {sorted.map((m) => (
-        <li key={m.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold">
-          <span>{new Date(m.at).toLocaleDateString()}</span>
-          <span className="tabular-nums">
-            {m.value} {m.unit}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="space-y-1.5">
+        {sorted.map((m) => (
+          <li key={m.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold">
+            <span>{new Date(m.at).toLocaleDateString()}</span>
+            <span className="flex items-center gap-1.5">
+              <span className="tabular-nums">
+                {m.value} {m.unit}
+              </span>
+              <button
+                onClick={() => setEditing(m)}
+                className="rounded-lg p-1 text-muted hover:bg-ink/10"
+                aria-label={`Edit ${kind} measurement ${m.value} ${m.unit} on ${new Date(m.at).toLocaleDateString()}`}
+              >
+                <Pencil className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                onClick={() => m.id && void deleteMeasurement(m.id)}
+                className="rounded-lg p-1 text-muted hover:bg-rose/10 hover:text-rose-deep"
+                aria-label={`Delete ${kind} measurement ${m.value} ${m.unit} on ${new Date(m.at).toLocaleDateString()}`}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Sheet open={!!editing} onClose={() => setEditing(null)} title={`Edit ${kind}`}>
+        {editing && <AddMeasurement childId={childId} kind={kind} onClose={() => setEditing(null)} editing={editing} />}
+      </Sheet>
+    </>
   )
 }
 
@@ -223,6 +294,7 @@ function Milestones({ childId }: { childId: EntityId }) {
   const [at, setAt] = useState<string>(nowIso())
   const [photoData, setPhotoData] = useState<Blob | null>(null)
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState<EventRecord | null>(null)
 
   const rows = useLiveQuery(
     async () => {
@@ -351,9 +423,22 @@ function Milestones({ childId }: { childId: EntityId }) {
                     <p className="text-xs text-muted">{new Date(m.startedAt).toLocaleDateString()}</p>
                     {m.note && <p className="mt-1 text-sm text-ink/80">{m.note}</p>}
                   </div>
-                  <button onClick={() => m.id && void db.events.delete(m.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
+                  <span className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setEditing(m)}
+                      className="rounded-xl p-2 text-muted hover:bg-sand"
+                      aria-label={`Edit milestone ${(m.payload as { title: string }).title}`}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden />
+                    </button>
+                    <button
+                      onClick={() => m.id && void deleteEvent(m.id)}
+                      className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
+                      aria-label={`Delete milestone ${(m.payload as { title: string }).title}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </button>
+                  </span>
                 </div>
                 {url && <img src={url} alt="milestone" className="mt-2 max-h-40 w-full rounded-xl object-cover" />}
               </li>
@@ -361,6 +446,8 @@ function Milestones({ childId }: { childId: EntityId }) {
           })}
         </ul>
       )}
+
+      <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }
@@ -371,6 +458,29 @@ function Health({ childId }: { childId: EntityId }) {
   const [detail, setDetail] = useState('')
   const [notes, setNotes] = useState('')
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+  const [editing, setEditing] = useState<MedicalRecord | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const blank = () => {
+    setName('')
+    setDetail('')
+    setNotes('')
+    setError(null)
+  }
+
+  const startEdit = (r: MedicalRecord) => {
+    setKind(r.kind)
+    setName(r.title)
+    setDetail(r.detail ?? '')
+    setNotes(r.notes ?? '')
+    setDate(r.date)
+    setEditing(r)
+  }
+
+  const cancelEdit = () => {
+    setEditing(null)
+    blank()
+  }
 
   const records = useLiveQuery(
     () =>
@@ -382,7 +492,22 @@ function Health({ childId }: { childId: EntityId }) {
   )
 
   const save = () => {
-    if (!name.trim()) return
+    if (!name.trim()) {
+      setError('Enter a name.')
+      return
+    }
+    if (editing?.id != null) {
+      void updateMedicalRecord({
+        ...editing,
+        kind,
+        date,
+        title: name.trim(),
+        detail: detail.trim() || undefined,
+        notes: notes.trim() || undefined,
+      })
+      cancelEdit()
+      return
+    }
     void db.medicalRecords.add({
       id: newId(),
       childId,
@@ -394,14 +519,22 @@ function Health({ childId }: { childId: EntityId }) {
       createdAt: nowIso(),
       updatedAt: nowIso(),
     })
-    setName('')
-    setDetail('')
-    setNotes('')
+    blank()
   }
 
   return (
     <div className="space-y-4">
       <div className="card space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted">
+            {editing ? 'Editing record' : 'Add a record'}
+          </h2>
+          {editing && (
+            <button onClick={cancelEdit} className="rounded-lg px-2 py-1 text-xs font-extrabold text-muted hover:bg-sand">
+              Cancel
+            </button>
+          )}
+        </div>
         <Segmented
           value={kind}
           onChange={setKind}
@@ -438,8 +571,13 @@ function Health({ childId }: { childId: EntityId }) {
           onChange={(e) => setDate(e.target.value)}
           className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm font-bold outline-none focus:border-gold"
         />
+        {error && (
+          <p role="alert" className="rounded-2xl bg-rose/10 px-4 py-2.5 text-sm font-bold text-rose-deep">
+            {error}
+          </p>
+        )}
         <button onClick={save} className="btn-gold w-full">
-          Save
+          {editing ? 'Save changes' : 'Save'}
         </button>
       </div>
 
@@ -457,9 +595,22 @@ function Health({ childId }: { childId: EntityId }) {
                   {r.notes ? ` — ${r.notes}` : ''}
                 </p>
               </div>
-              <button onClick={() => r.id && void db.medicalRecords.delete(r.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-                <Trash2 className="h-4 w-4" aria-hidden />
-              </button>
+              <span className="flex items-center gap-0.5">
+                <button
+                  onClick={() => startEdit(r)}
+                  className="rounded-xl p-2 text-muted hover:bg-sand"
+                  aria-label={`Edit ${r.title}`}
+                >
+                  <Pencil className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  onClick={() => r.id && void deleteMedicalRecord(r.id)}
+                  className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
+                  aria-label={`Delete ${r.title}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                </button>
+              </span>
             </li>
           ))}
         </ul>

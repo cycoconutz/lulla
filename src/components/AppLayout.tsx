@@ -159,7 +159,13 @@ export function AppLayoutPage() {
         </header>
 
         <main className="relative flex-1 px-4 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-4 lg:px-8 lg:pb-12">
-          <ActiveTimerBar />
+          {/* Reserved slot: the timer banner appears and disappears here, so the
+              slot keeps a constant height and the page below never moves. Without
+              it, stopping the last timer shifts every control up by a row and a
+              user's next tap lands on the wrong button. */}
+          <div className="mb-3 h-14 shrink-0 overflow-hidden">
+            <ActiveTimerBar />
+          </div>
           <div key={location.pathname} className="animate-page-in motion-reduce:animate-none">
             <Outlet />
           </div>

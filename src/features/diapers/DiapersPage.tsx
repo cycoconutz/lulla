@@ -6,7 +6,9 @@ import type { DiaperPayload, EntityId, EventRecord } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
-import { Droplets, CloudRain, CloudSun, Wind, Bandage, Trash2, type LucideIcon } from 'lucide-react'
+import { EditEntrySheet } from '../shared/EditEntrySheet'
+import { Pencil, Trash2 } from 'lucide-react'
+import { Droplets, CloudRain, CloudSun, Wind, Bandage, type LucideIcon } from 'lucide-react'
 
 /**
  * Quick-log gradients. The `dark:` stops are required: this is the only screen
@@ -34,6 +36,7 @@ export function DiapersPage() {
     [],
   )
   const [detailedOpen, setDetailedOpen] = useState(false)
+  const [editing, setEditing] = useState<EventRecord | null>(null)
 
   const diaperEvents = (eventsToday ?? []).filter((e) => e.type === 'diaper')
 
@@ -70,8 +73,10 @@ export function DiapersPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Today</h2>
-        <DiaperList events={diaperEvents} onDelete={(id) => void deleteEvent(id)} />
+        <DiaperList events={diaperEvents} onDelete={(id) => void deleteEvent(id)} onEdit={setEditing} />
       </section>
+
+      <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }
@@ -118,7 +123,15 @@ function DetailedDiaper({ childId, onClose }: { childId?: EntityId; onClose: () 
   )
 }
 
-function DiaperList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
+function DiaperList({
+  events,
+  onDelete,
+  onEdit,
+}: {
+  events: EventRecord[]
+  onDelete: (id: EntityId) => void
+  onEdit: (e: EventRecord) => void
+}) {
   if (events.length === 0) return <p className="text-sm text-muted">No diapers logged yet today.</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   return (
@@ -142,9 +155,18 @@ function DiaperList({ events, onDelete }: { events: EventRecord[]; onDelete: (id
               </p>
               <p className="text-xs text-muted">{formatTime(e.startedAt)}</p>
             </div>
-            <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-              <Trash2 className="h-4 w-4" aria-hidden />
-            </button>
+            <span className="flex items-center gap-0.5">
+              <button
+                onClick={() => onEdit(e)}
+                className="rounded-xl p-2 text-muted hover:bg-sand"
+                aria-label={`Edit diaper at ${formatTime(e.startedAt)}`}
+              >
+                <Pencil className="h-4 w-4" aria-hidden />
+              </button>
+              <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label={`Delete diaper at ${formatTime(e.startedAt)}`}>
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            </span>
           </li>
         )
       })}

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { EntityId, EventRecord, EventPayload } from '../domain/types'
+import type { EntityId, EventRecord, EventPayload, SleepPayload } from '../domain/types'
 import { eventsForChild, updateEvent } from '../domain/repositories'
 import { nowIso } from '../domain/time'
 
@@ -20,6 +20,11 @@ export const useUIStore = create<UIState>((set, get) => ({
     const active = events.filter(isActiveTimer)
     set({ activeTimers: active })
   },
+  /**
+   * Ends a running timer. The local store update runs even if the write fails,
+   * because leaving a stopped timer in `activeTimers` would keep the banner and
+   * the start buttons locked with no way out.
+   */
   stopTimer: async (e) => {
     const durationSec = Math.round((Date.now() - new Date(e.startedAt).getTime()) / 1000)
     let payload: EventPayload = e.payload
@@ -29,11 +34,19 @@ export const useUIStore = create<UIState>((set, get) => ({
         payload = { ...p, durationSeconds: durationSec } as EventPayload
       }
     }
+    // An explicit stop opts out of the sleep merge window, so a restart straight
+    // afterwards creates a new record instead of silently reopening this one.
+    if (e.type === 'sleep') {
+      payload = { ...(e.payload as SleepPayload), endedExplicit: true }
+    }
     const updated: EventRecord = { ...e, endedAt: nowIso(), payload }
-    await updateEvent(updated)
-    set({
-      activeTimers: get().activeTimers.filter((t) => t.id !== updated.id),
-    })
+    try {
+      await updateEvent(updated)
+    } finally {
+      set({
+        activeTimers: get().activeTimers.filter((t) => t.id !== updated.id),
+      })
+    }
   },
 }))
 

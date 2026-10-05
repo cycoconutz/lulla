@@ -12,7 +12,8 @@ import { useUIStore } from '../../store/ui'
 import { Segmented } from '../../components/ui/Segmented'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
-import { CloudMoon, Moon, Square, Trash2 } from 'lucide-react'
+import { EditEntrySheet } from '../shared/EditEntrySheet'
+import { CloudMoon, Moon, Pencil, Square, Trash2 } from 'lucide-react'
 
 export function SleepPage() {
   const { selected } = useSelectedChild()
@@ -26,6 +27,7 @@ export function SleepPage() {
   const stopTimer = useUIStore((s) => s.stopTimer)
   const [manualOpen, setManualOpen] = useState(false)
   const [kind, setKind] = useState<'nap' | 'night'>('nap')
+  const [editing, setEditing] = useState<EventRecord | null>(null)
 
   const sleepEvents = (eventsToday ?? []).filter((e) => e.type === 'sleep')
   const sleepTimer = activeTimers.find((t) => t.type === 'sleep')
@@ -125,8 +127,14 @@ export function SleepPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Today’s sleep</h2>
-        <SleepList events={sleepEvents.filter((e) => e.endedAt)} onDelete={(id) => void deleteEvent(id)} />
+        <SleepList
+          events={sleepEvents.filter((e) => e.endedAt)}
+          onDelete={(id) => void deleteEvent(id)}
+          onEdit={setEditing}
+        />
       </section>
+
+      <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }
@@ -183,7 +191,15 @@ function ManualSleep({ childId, defaultKind, onClose }: { childId: EntityId; def
   )
 }
 
-function SleepList({ events, onDelete }: { events: EventRecord[]; onDelete: (id: EntityId) => void }) {
+function SleepList({
+  events,
+  onDelete,
+  onEdit,
+}: {
+  events: EventRecord[]
+  onDelete: (id: EntityId) => void
+  onEdit: (e: EventRecord) => void
+}) {
   if (events.length === 0) return <p className="text-sm text-muted">No completed sleep yet today.</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   const totalMin = events.reduce(
@@ -208,9 +224,18 @@ function SleepList({ events, onDelete }: { events: EventRecord[]; onDelete: (id:
                 {formatTime(e.startedAt)} → {e.endedAt ? formatTime(e.endedAt) : '…'}
               </p>
             </div>
-            <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label="Delete">
-              <Trash2 className="h-4 w-4" aria-hidden />
-            </button>
+            <span className="flex items-center gap-0.5">
+              <button
+                onClick={() => onEdit(e)}
+                className="rounded-xl p-2 text-muted hover:bg-sand"
+                aria-label={`Edit ${(e.payload as { kind: string }).kind} at ${formatTime(e.startedAt)}`}
+              >
+                <Pencil className="h-4 w-4" aria-hidden />
+              </button>
+              <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label={`Delete ${(e.payload as { kind: string }).kind} at ${formatTime(e.startedAt)}`}>
+                <Trash2 className="h-4 w-4" aria-hidden />
+              </button>
+            </span>
           </li>
         ))}
       </ul>

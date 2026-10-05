@@ -6,7 +6,9 @@ import type { EntityId } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
 import { db } from '../../db/schema'
 import { Sheet } from '../../components/ui/Sheet'
-import { Check, X } from 'lucide-react'
+import { EditEntrySheet } from '../shared/EditEntrySheet'
+import { Check, Pencil, Trash2 } from 'lucide-react'
+import type { EventRecord } from '../../domain/types'
 
 const ROUTINE_PRESETS = ['Tummy time', 'Bath', 'Story time', 'Walk', 'Playtime', 'Massage', 'High chair time']
 
@@ -25,6 +27,7 @@ export function RoutinesPage() {
 function Routines({ childId }: { childId: EntityId }) {
   const [custom, setCustom] = useState('')
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState<EventRecord | null>(null)
   const eventsToday = useLiveQuery(() => eventsOnDay(childId), [childId], [])
   const routines = useLiveQuery(() => db.events.where('type').equals('routine').and(() => true).toArray(), [])
 
@@ -93,15 +96,30 @@ function Routines({ childId }: { childId: EntityId }) {
               .map((e) => (
                 <li key={e.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold">
                   <span>{(e.payload as { name: string }).name}</span>
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     <span className="text-muted">{formatTime(e.startedAt)}</span>
-                    <button onClick={() => e.id && void deleteEvent(e.id)} aria-label="Delete"><X className="h-4 w-4" aria-hidden /></button>
+                    <button
+                      onClick={() => setEditing(e)}
+                      className="rounded-lg p-1 text-muted hover:bg-ink/10"
+                      aria-label={`Edit ${(e.payload as { name: string }).name} at ${formatTime(e.startedAt)}`}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden />
+                    </button>
+                    <button
+                      onClick={() => e.id && void deleteEvent(e.id)}
+                      className="rounded-lg p-1 text-muted hover:bg-rose/10 hover:text-rose-deep"
+                      aria-label={`Delete ${(e.payload as { name: string }).name} at ${formatTime(e.startedAt)}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </button>
                   </span>
                 </li>
               ))}
           </ul>
         </section>
       )}
+
+      <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import type {
   EventType,
   FeedingPayload,
   Measurement,
+  MedicalRecord,
   ParentEntry,
   ParentProfile,
   ReminderRule,
@@ -244,6 +245,23 @@ export function defaultSettings(): Settings {
 
 export const addMeasurement = (m: Omit<Measurement, 'id' | 'createdAt'>) =>
   db.measurements.add({ ...m, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
+
+/** Restamp updatedAt so a corrected measurement wins LWW on the next sync push. */
+export const updateMeasurement = (m: Measurement) =>
+  db.measurements.put({ ...m, updatedAt: nowIso() })
+
+export const deleteMeasurement = async (id: EntityId) => {
+  await recordDeleteTombstone(id)
+  return db.measurements.delete(id)
+}
+
+export const updateMedicalRecord = (r: MedicalRecord) =>
+  db.medicalRecords.put({ ...r, updatedAt: nowIso() })
+
+export const deleteMedicalRecord = async (id: EntityId) => {
+  await recordDeleteTombstone(id)
+  return db.medicalRecords.delete(id)
+}
 
 export const measurementsForKind = async (childId: EntityId, kind: Measurement['kind']) => {
   const all = await db.measurements

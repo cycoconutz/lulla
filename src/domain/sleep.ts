@@ -9,12 +9,16 @@ export const SLEEP_MERGE_WINDOW_MS = 5 * 60_000
  * merge window).
  */
 export function shouldReopenSleep(
-  prev: { kind: string; endedAt?: string } | undefined,
+  prev: { kind: string; endedAt?: string; endedExplicit?: boolean } | undefined,
   newStartAt: string,
   newKind: string,
 ): boolean {
   if (!prev?.endedAt) return false
   if (prev.kind !== newKind) return false
+  // A timer the user stopped by hand is a deliberate boundary. Merging across it
+  // would reopen the same record with its original start time, so the clock
+  // appears not to move and a genuine wake-then-resleep is recorded as one nap.
+  if (prev.endedExplicit) return false
   const gap = new Date(newStartAt).getTime() - new Date(prev.endedAt).getTime()
   return gap >= 0 && gap <= SLEEP_MERGE_WINDOW_MS
 }
@@ -32,7 +36,7 @@ export function findReopenCandidateIn(
     )
     .sort((a, b) => b.endedAt.localeCompare(a.endedAt))
   for (const e of ended) {
-    if (shouldReopenSleep({ kind: (e.payload as SleepPayload).kind, endedAt: e.endedAt }, newStartAt, kind)) return e
+    if (shouldReopenSleep({ kind: (e.payload as SleepPayload).kind, endedAt: e.endedAt, endedExplicit: (e.payload as SleepPayload).endedExplicit }, newStartAt, kind)) return e
   }
   return undefined
 }

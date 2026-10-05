@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.38",
+    "date": "2026-10-05",
+    "title": "dark mode styling for diaper quick-log buttons",
+    "sha": "179d33d9c38799efa430f14de127f28030b7f337"
+  },
+  {
     "version": "0.1.37",
     "date": "2026-10-04",
     "title": "log a finished nursing session with a backdated start time",
