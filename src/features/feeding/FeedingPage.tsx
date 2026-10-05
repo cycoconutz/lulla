@@ -92,6 +92,10 @@ export function FeedingPage() {
               <SideButton side="right" hint={lastBreastSide === 'left'} onClick={() => startBreast('right')} />
             </div>
           )}
+          <ManualBreastLog
+            childId={selected.id!}
+            defaultSide={lastBreastSide === 'left' ? 'right' : 'left'}
+          />
         </div>
       )}
 
@@ -138,6 +142,65 @@ function StopTimerButton({ onClick }: { onClick: () => void }) {
     <button onClick={onClick} className="btn-gold mt-3 flex w-full items-center justify-center gap-2 !py-4 text-base">
       <Square className="h-4 w-4 fill-current" aria-hidden /> Stop & save
     </button>
+  )
+}
+
+/**
+ * Log a nursing session that already finished. The side buttons can only start
+ * a live timer, so there was no way to backfill a feed from earlier.
+ */
+function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultSide: 'left' | 'right' }) {
+  const [open, setOpen] = useState(false)
+  const [side, setSide] = useState<'left' | 'right'>(defaultSide)
+  const [minutes, setMinutes] = useState(15)
+  const [start, setStart] = useState<string>(nowIso())
+
+  const save = () => {
+    const startMs = new Date(start).getTime()
+    const durationSec = Math.round(minutes * 60)
+    const payload: FeedingPayload = { kind: 'breast', side, durationSeconds: durationSec }
+    void recordEvent({
+      childId,
+      type: 'feeding',
+      startedAt: new Date(startMs).toISOString(),
+      endedAt: new Date(startMs + durationSec * 1000).toISOString(),
+      payload,
+      createdAt: nowIso(),
+    })
+    setOpen(false)
+    setMinutes(15)
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => {
+          setStart(nowIso())
+          setOpen(true)
+        }}
+        className="btn-outline w-full"
+      >
+        Log a finished session
+      </button>
+      <Sheet open={open} onClose={() => setOpen(false)} title="Nursing session">
+        <div className="space-y-4">
+          <Segmented
+            value={side}
+            onChange={setSide}
+            options={[
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+            ]}
+          />
+          <Stepper value={minutes} onChange={setMinutes} step={1} min={1} max={240} suffix="min" />
+          <label className="block text-xs font-bold text-muted">Started at</label>
+          <DateTimeField value={start} onChange={setStart} />
+          <button onClick={save} className="btn-gold w-full !py-4">
+            Save session
+          </button>
+        </div>
+      </Sheet>
+    </>
   )
 }
 
