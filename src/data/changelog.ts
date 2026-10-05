@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.37",
+    "date": "2026-10-04",
+    "title": "log a finished nursing session with a backdated start time",
+    "sha": "609f42b2e314bc5256668ec6f7a2feb41ae390f6"
+  },
+  {
+    "version": "0.1.36",
+    "date": "2026-10-04",
+    "title": "custom reminder length in minutes and editable titles",
+    "sha": "ec2059ad503a2ae6290a32d8cf3a129a6fb7f338"
+  },
+  {
     "version": "0.1.35",
     "date": "2026-09-26",
     "title": "consolidate firsts into milestones and drop the guides feature",

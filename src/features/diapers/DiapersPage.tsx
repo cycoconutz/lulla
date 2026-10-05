@@ -8,11 +8,22 @@ import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
 import { Droplets, CloudRain, CloudSun, Wind, Bandage, Trash2, type LucideIcon } from 'lucide-react'
 
-const QUICK: { status: DiaperPayload['status']; Icon: LucideIcon; label: string; bg: string }[] = [
-  { status: 'wet', Icon: Droplets, label: 'Wet', bg: 'from-sky-100 to-sky-50' },
-  { status: 'dirty', Icon: CloudRain, label: 'Dirty', bg: 'from-amber-100 to-amber-50' },
-  { status: 'mixed', Icon: CloudSun, label: 'Mixed', bg: 'from-rose-100 to-rose-50' },
-  { status: 'dry', Icon: Wind, label: 'Dry', bg: 'from-stone-100 to-stone-50' },
+/**
+ * Quick-log gradients. The `dark:` stops are required: this is the only screen
+ * using raw Tailwind palette colours instead of the theme tokens, so nothing
+ * else would adapt them and the light text would sit on a near-white button.
+ */
+const QUICK: {
+  status: DiaperPayload['status']
+  Icon: LucideIcon
+  label: string
+  bg: string
+  bgDark: string
+}[] = [
+  { status: 'wet', Icon: Droplets, label: 'Wet', bg: 'from-sky-100 to-sky-50', bgDark: 'dark:from-sky-950 dark:to-sky-900' },
+  { status: 'dirty', Icon: CloudRain, label: 'Dirty', bg: 'from-amber-100 to-amber-50', bgDark: 'dark:from-amber-950 dark:to-amber-900' },
+  { status: 'mixed', Icon: CloudSun, label: 'Mixed', bg: 'from-rose-100 to-rose-50', bgDark: 'dark:from-rose-950 dark:to-rose-900' },
+  { status: 'dry', Icon: Wind, label: 'Dry', bg: 'from-stone-100 to-stone-50', bgDark: 'dark:from-stone-800 dark:to-stone-900' },
 ]
 
 export function DiapersPage() {
@@ -41,7 +52,7 @@ export function DiapersPage() {
           <button
             key={q.status}
             onClick={() => quick(q.status)}
-            className={`rounded-2xl border border-sand bg-gradient-to-b ${q.bg} p-5 text-center transition active:scale-[0.96]`}
+            className={`rounded-2xl border border-sand bg-gradient-to-b ${q.bg} ${q.bgDark} p-5 text-center transition active:scale-[0.96]`}
           >
             <q.Icon className="mx-auto h-7 w-7" aria-hidden />
             <p className="mt-1 font-extrabold">{q.label}</p>
