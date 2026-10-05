@@ -160,8 +160,10 @@ export interface Household {
 
 export interface ReminderRule {
   id: string
+  /** User-editable reminder title, used verbatim in the notification. */
   label: string
-  intervalHours: number
+  /** Repeat interval in whole minutes. Clamped to REMINDER_MIN/MAX_MINUTES. */
+  intervalMinutes: number
   activity: EventType | 'mom'
   enabled: boolean
 }

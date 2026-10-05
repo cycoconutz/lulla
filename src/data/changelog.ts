@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.35",
+    "date": "2026-09-26",
+    "title": "consolidate firsts into milestones and drop the guides feature",
+    "sha": "2083d373e1bd4ddc52aedf5c44070617824215ba"
+  },
+  {
+    "version": "0.1.34",
+    "date": "2026-09-26",
+    "title": "portal sheets to body so the page animation cannot displace them",
+    "sha": "93759003cf883f6df35b24aa024967a44545d63d"
+  },
+  {
     "version": "0.1.32",
     "date": "2026-09-26",
     "title": "add a theme toggle to the onboarding screen",

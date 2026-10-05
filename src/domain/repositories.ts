@@ -8,6 +8,7 @@ import type {
   Measurement,
   ParentEntry,
   ParentProfile,
+  ReminderRule,
   Settings,
 } from './types'
 import { dayEndIso, dayStartIso, newId, nowIso } from './time'
@@ -127,13 +128,93 @@ export const upsertHousehold = async (h: { name: string; caregivers: string[] })
 
 export const getSettings = async (): Promise<Settings> => {
   const [row] = await db.settings.toArray()
-  if (row) return row
+  if (row) {
+    const fixed = normalizeSettings(row)
+    // Persist the migration once so the row stops needing repair on every read.
+    if (JSON.stringify(fixed.reminders) !== JSON.stringify(row.reminders)) {
+      await db.settings.put(fixed)
+    }
+    return fixed
+  }
   const defaults = defaultSettings()
   await db.settings.add(defaults)
   return defaults
 }
 
 export const saveSettings = (s: Settings) => db.settings.put(s)
+
+/** Supported bounds for a reminder's repeat interval, in minutes. */
+export const REMINDER_MIN_MINUTES = 5
+export const REMINDER_MAX_MINUTES = 1440
+/** Fallback when a stored interval is missing or unusable (3 hours). */
+export const REMINDER_DEFAULT_MINUTES = 180
+
+export function clampReminderMinutes(value: number): number {
+  if (!Number.isFinite(value)) return REMINDER_DEFAULT_MINUTES
+  return Math.min(REMINDER_MAX_MINUTES, Math.max(REMINDER_MIN_MINUTES, Math.round(value)))
+}
+
+/** Human-readable repeat length, e.g. "3h", "45 min", "1h 30m". */
+export function formatInterval(minutes: number): string {
+  const m = clampReminderMinutes(minutes)
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  const rest = m % 60
+  return rest === 0 ? `${h}h` : `${h}h ${rest}m`
+}
+
+type StoredReminderRule = Partial<Omit<ReminderRule, 'intervalMinutes'>> & {
+  intervalMinutes?: unknown
+  intervalHours?: unknown
+}
+
+/**
+ * Every EventType. Deliberately not `allEventTypes`, which is the narrower
+ * subset the settings grid offers and which omits 'memory' — a reminder that
+ * already points at 'memory' must survive normalization untouched.
+ */
+const everyEventType: readonly EventType[] = [
+  'feeding',
+  'sleep',
+  'diaper',
+  'routine',
+  'medication',
+  'vaccine',
+  'milestone',
+  'memory',
+]
+
+function normalizeActivity(value: unknown): EventType | 'mom' {
+  return value === 'mom' || everyEventType.includes(value as EventType)
+    ? (value as EventType | 'mom')
+    : 'feeding'
+}
+
+/**
+ * Coerce stored reminder rules into the current shape. Installs from before the
+ * minutes change hold `intervalHours`, so convert those rather than silently
+ * dropping the interval and leaving the device with no reminders.
+ */
+export function normalizeReminderRules(rules: unknown): ReminderRule[] {
+  if (!Array.isArray(rules)) return defaultSettings().reminders
+  return rules.map((raw, i) => {
+    const r = (raw ?? {}) as StoredReminderRule
+    const legacy = typeof r.intervalHours === 'number' ? r.intervalHours * 60 : NaN
+    const label = typeof r.label === 'string' ? r.label.trim() : ''
+    return {
+      id: typeof r.id === 'string' && r.id ? r.id : `reminder-${i + 1}`,
+      label: label || 'Reminder',
+      intervalMinutes: clampReminderMinutes(Number(r.intervalMinutes ?? legacy)),
+      activity: normalizeActivity(r.activity),
+      enabled: r.enabled !== false,
+    }
+  })
+}
+
+/** Pure: bring a stored settings row up to the current reminder shape. */
+export function normalizeSettings(row: Settings): Settings {
+  return { ...row, reminders: normalizeReminderRules(row.reminders) }
+}
 
 export function defaultSettings(): Settings {
   return {
@@ -142,7 +223,7 @@ export function defaultSettings(): Settings {
     unitsWeight: 'lb',
     enabledActivities: [...allEventTypes],
     reminders: [
-      { id: 'feed', label: 'Feeding check-in', intervalHours: 3, activity: 'feeding', enabled: true },
+      { id: 'feed', label: 'Feeding check-in', intervalMinutes: REMINDER_DEFAULT_MINUTES, activity: 'feeding', enabled: true },
     ],
     wakeWindows: [
       { ageMonths: 0, windowMinutes: 60 },

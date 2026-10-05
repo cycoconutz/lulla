@@ -7,7 +7,7 @@ const child: Child = { id: 7, name: 'Milo', birthDate: '2026-01-01', createdAt: 
 const rule = (over: Partial<ReminderRule> = {}): ReminderRule => ({
   id: 'r1',
   label: 'Feed check-in',
-  intervalHours: 3,
+  intervalMinutes: 180,
   activity: 'feeding',
   enabled: true,
   ...over,
@@ -45,7 +45,7 @@ describe('computeItemsForRule', () => {
 
   it('skips disabled or zero-interval rules', () => {
     expect(computeItemsForRule(rule({ enabled: false }), child, null, null, now)).toEqual([])
-    expect(computeItemsForRule(rule({ intervalHours: 0 }), child, null, null, now)).toEqual([])
+    expect(computeItemsForRule(rule({ intervalMinutes: 0 }), child, null, null, now)).toEqual([])
   })
 
   it('schedules from now when no prior event exists', () => {

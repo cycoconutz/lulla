@@ -83,11 +83,11 @@ export function computeItemsForRule(
   quiet?: QuietHours | null,
   now = Date.now(),
 ): PushItem[] {
-  if (!rule.enabled || rule.intervalHours <= 0) return []
+  if (!rule.enabled || rule.intervalMinutes <= 0) return []
   const items: PushItem[] = []
   const horizon = now + WINDOW_DAYS * 86400000
   const type = rule.activity === 'mom' ? 'feeding' : rule.activity
-  const intervalMs = rule.intervalHours * 3600000
+  const intervalMs = rule.intervalMinutes * 60000
   // First reminder: interval after the last log (or after "now" when there's
   // nothing logged yet), rounded so it isn't skewed by the moment of setup.
   const base = lastAtMs != null ? lastAtMs + intervalMs : Math.floor(now / 60000) * 60000 + intervalMs
@@ -114,7 +114,7 @@ export function computeItemsForRule(
 export async function computePushItemsForChild(child: Child, rules: ReminderRule[], quiet?: QuietHours | null): Promise<PushItem[]> {
   let items: PushItem[] = []
   for (const rule of rules) {
-    if (!rule.enabled || rule.intervalHours <= 0) continue
+    if (!rule.enabled || rule.intervalMinutes <= 0) continue
     const type = rule.activity === 'mom' ? 'feeding' : rule.activity
     const last = await latestEventOfTypes(child.id!, [type])
     items = items.concat(computeItemsForRule(rule, child, last ? new Date(last.startedAt).getTime() : null, quiet))

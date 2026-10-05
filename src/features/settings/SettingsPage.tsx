@@ -3,12 +3,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import {
   allEventTypes,
+  clampReminderMinutes,
   deleteChild,
+  formatInterval,
+  normalizeSettings,
+  REMINDER_MAX_MINUTES,
+  REMINDER_MIN_MINUTES,
   saveSettings,
   updateChild,
   upsertHousehold,
 } from '../../domain/repositories'
-import type { EventType, Settings } from '../../domain/types'
+import type { EventType, ReminderRule, Settings } from '../../domain/types'
 import { db } from '../../db/schema'
 import { listChildren } from '../../domain/repositories'
 import { exportBackup, importBackup, downloadJson } from '../../db/exportImport'
@@ -37,11 +42,12 @@ export function SettingsPage() {
   const children = useLiveQuery(listChildren, [], [])
   const settings = useLiveQuery(async () => {
     const [row] = await db.settings.toArray()
-    return row
+    return row ? normalizeSettings(row) : undefined
   }, [])
   const household = useLiveQuery(async () => (await db.household.toArray())[0], [])
   const [caregiverInput, setCaregiverInput] = useState('')
   const [pushOn, setPushOn] = useState(() => getPushCred() != null)
+  const [draftMinutes, setDraftMinutes] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -51,6 +57,9 @@ export function SettingsPage() {
   if (!settings) return null
 
   const set = (patch: Partial<Settings>) => saveSettings({ ...settings, ...patch })
+
+  const patchRule = (id: string, patch: Partial<ReminderRule>) =>
+    set({ reminders: settings.reminders.map((x) => (x.id === id ? { ...x, ...patch } : x)) })
 
   const toggleActivity = (t: EventType) => {
     const on = settings.enabledActivities.includes(t)
@@ -162,23 +171,48 @@ export function SettingsPage() {
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Reminders</h2>
         <div className="space-y-2">
           {settings.reminders.map((r) => (
-            <label key={r.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2.5">
-              <span className="text-sm font-bold">
-                {r.label} <span className="text-muted">· every {r.intervalHours}h</span>
-              </span>
-              <input
-                type="checkbox"
-                checked={r.enabled}
-                onChange={(e) =>
-                  set({
-                    reminders: settings.reminders.map((x) =>
-                      x.id === r.id ? { ...x, enabled: e.target.checked } : x,
-                    ),
-                  })
-                }
-                className="h-5 w-5 accent-[#b98a2c]"
-              />
-            </label>
+            <div key={r.id} className="rounded-xl bg-sand px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <input
+                  value={r.label}
+                  onChange={(e) => patchRule(r.id, { label: e.target.value })}
+                  placeholder="Reminder title"
+                  aria-label="Reminder title"
+                  maxLength={60}
+                  className="min-w-0 flex-1 rounded-2xl border border-ink/10 bg-paper px-3 py-2 text-sm font-bold text-ink outline-none focus:border-gold"
+                />
+                <input
+                  type="checkbox"
+                  checked={r.enabled}
+                  aria-label={`Turn ${r.label || 'reminder'} on or off`}
+                  onChange={(e) => patchRule(r.id, { enabled: e.target.checked })}
+                  className="h-5 w-5 shrink-0 accent-[#b98a2c]"
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                <span>Remind me every</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={REMINDER_MIN_MINUTES}
+                  max={REMINDER_MAX_MINUTES}
+                  step={5}
+                  value={draftMinutes[r.id] ?? String(r.intervalMinutes)}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setDraftMinutes((d) => ({ ...d, [r.id]: raw }))
+                    if (raw === '') return
+                    const n = Number(raw)
+                    if (Number.isFinite(n)) patchRule(r.id, { intervalMinutes: clampReminderMinutes(n) })
+                  }}
+                  onBlur={() => setDraftMinutes((d) => ({ ...d, [r.id]: String(r.intervalMinutes) }))}
+                  aria-label="Reminder interval in minutes"
+                  className="w-20 rounded-2xl border border-ink/10 bg-paper px-3 py-1.5 text-sm font-bold text-ink outline-none focus:border-gold"
+                />
+                <span>minutes</span>
+                <span className="ml-auto font-bold text-ink">≈ {formatInterval(r.intervalMinutes)}</span>
+              </div>
+            </div>
           ))}
         </div>
         <button

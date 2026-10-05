@@ -40,8 +40,8 @@ export async function scheduleRemindersForChild(
     const type = rule.activity === 'mom' ? 'feeding' : rule.activity
     const last = await latestEventOfTypes(childId, [type])
     const base = last
-      ? new Date(last.startedAt).getTime() + rule.intervalHours * 3600000
-      : Date.now() + rule.intervalHours * 3600000
+      ? new Date(last.startedAt).getTime() + rule.intervalMinutes * 60000
+      : Date.now() + rule.intervalMinutes * 60000
     const delay = base - Date.now()
     if (delay > 0 && delay < 14 * 86400000) {
       const t = window.setTimeout(() => {
@@ -56,7 +56,7 @@ export async function scheduleRemindersForChild(
 function scheduleOne(rule: ReminderRule, type: EventType, childId: EntityId): void {
   void (async () => {
     const last = await latestEventOfTypes(childId, [type])
-    const base = (last ? new Date(last.startedAt).getTime() : Date.now()) + rule.intervalHours * 3600000
+    const base = (last ? new Date(last.startedAt).getTime() : Date.now()) + rule.intervalMinutes * 60000
     const delay = base - Date.now()
     if (delay > 0) {
       timers.push(
