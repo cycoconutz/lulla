@@ -174,10 +174,17 @@ export interface ReminderRule {
   enabled: boolean
 }
 
-/** Local-time window (HH:MM) during which lock-screen reminders stay silent. */
+/**
+ * Local-time window (HH:MM) during which lock-screen reminders stay silent.
+ *
+ * `enabled` is optional and defaults to on, so a window saved before the toggle
+ * existed keeps silencing notifications. Set it false to let reminders through
+ * 24 hours a day while leaving the times remembered.
+ */
 export interface QuietHours {
   start: string
   end: string
+  enabled?: boolean
 }
 
 export interface WakeWindowRule {

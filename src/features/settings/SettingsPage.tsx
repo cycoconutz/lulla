@@ -61,6 +61,13 @@ export function SettingsPage() {
   const patchRule = (id: string, patch: Partial<ReminderRule>) =>
     set({ reminders: settings.reminders.map((x) => (x.id === id ? { ...x, ...patch } : x)) })
 
+  // A window saved before the toggle existed has no `enabled` key, so it counts
+  // as on. Turning the toggle off keeps the times rather than dropping the row.
+  const quiet = settings.quietHours ?? { start: '21:00', end: '07:00' }
+  const quietOn = quiet.enabled !== false
+  const setQuiet = (on: boolean) =>
+    set({ quietHours: { start: quiet.start, end: quiet.end, enabled: on } })
+
   const toggleActivity = (t: EventType) => {
     const on = settings.enabledActivities.includes(t)
     set({ enabledActivities: on ? settings.enabledActivities.filter((x) => x !== t) : [...settings.enabledActivities, t] })
@@ -245,28 +252,44 @@ export function SettingsPage() {
         </button>
         {pushOn && (
           <div className="mt-3 rounded-xl bg-sand px-3 py-2.5">
-            <div className="mb-2 text-xs font-extrabold uppercase tracking-wider text-muted">Quiet hours</div>
-            <div className="flex items-center gap-2 text-sm font-bold">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-muted">Quiet hours</span>
+              <label className="flex items-center gap-2 text-xs font-bold">
+                <span className={quietOn ? 'text-muted' : 'text-ink'}>{quietOn ? 'On' : 'Off'}</span>
+                <input
+                  type="checkbox"
+                  checked={quietOn}
+                  onChange={(e) => setQuiet(e.target.checked)}
+                  className="h-5 w-5 accent-gold"
+                  aria-label="Enable quiet hours"
+                />
+              </label>
+            </div>
+            <div className={`flex items-center gap-2 text-sm font-bold ${quietOn ? '' : 'opacity-40'}`}>
               <input
                 type="time"
+                disabled={!quietOn}
                 value={settings.quietHours?.start ?? '21:00'}
                 onChange={(e) =>
-                  set({ quietHours: { start: e.target.value || '21:00', end: settings.quietHours?.end ?? '07:00' } })
+                  set({ quietHours: { start: e.target.value || '21:00', end: settings.quietHours?.end ?? '07:00', enabled: true } })
                 }
                 className="rounded-lg bg-paper px-2 py-1.5 text-xs font-bold outline-none"
               />
               <span className="text-muted">to</span>
               <input
                 type="time"
+                disabled={!quietOn}
                 value={settings.quietHours?.end ?? '07:00'}
                 onChange={(e) =>
-                  set({ quietHours: { start: settings.quietHours?.start ?? '21:00', end: e.target.value || '07:00' } })
+                  set({ quietHours: { start: settings.quietHours?.start ?? '21:00', end: e.target.value || '07:00', enabled: true } })
                 }
                 className="rounded-lg bg-paper px-2 py-1.5 text-xs font-bold outline-none"
               />
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-muted">
-              No lock-screen nudges between these times (they’re ignored).
+              {quietOn
+                ? 'No lock-screen nudges between these times (they’re ignored).'
+                : 'Quiet hours are off, so reminders can arrive at any hour. Your times are kept.'}
             </p>
           </div>
         )}

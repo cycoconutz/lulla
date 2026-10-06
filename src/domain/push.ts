@@ -42,6 +42,9 @@ function parseClock(s: string | undefined): number | null {
  * from landing a minute later than a window's edge.
  */
 export function inQuietWindow(date: Date, quiet: QuietHours, graceMinutes = 2): boolean {
+  // Only `enabled === false` opts out; a window saved before the toggle existed
+  // has no `enabled` key and must keep silencing reminders.
+  if (quiet.enabled === false) return false
   const start = parseClock(quiet.start)
   const end = parseClock(quiet.end)
   if (start == null || end == null) return false

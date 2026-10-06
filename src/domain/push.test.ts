@@ -29,6 +29,20 @@ describe('inQuietWindow', () => {
     expect(inQuietWindow(new Date(), { start: '', end: '' })).toBe(false)
     expect(inQuietWindow(new Date(), { start: '25:00', end: '07:00' })).toBe(false)
   })
+  it('lets every hour through when the toggle is off', () => {
+    const off: QuietHours = { start: '21:00', end: '07:00', enabled: false }
+    expect(inQuietWindow(new Date('2026-01-01T23:30:00'), off)).toBe(false)
+    expect(inQuietWindow(new Date('2026-01-01T03:00:00'), off)).toBe(false)
+  })
+  it('keeps silencing a window saved before the toggle existed', () => {
+    // No `enabled` key at all, which is what every pre-toggle row looks like.
+    expect(inQuietWindow(new Date('2026-01-01T23:30:00'), { start: '21:00', end: '07:00' })).toBe(true)
+    expect(inQuietWindow(new Date('2026-01-01T03:00:00'), { start: '21:00', end: '07:00' })).toBe(true)
+  })
+  it('silences when explicitly enabled, including for an all-day window', () => {
+    const on: QuietHours = { start: '00:00', end: '23:59', enabled: true }
+    expect(inQuietWindow(new Date('2026-01-01T12:00:00'), on)).toBe(true)
+  })
 })
 
 describe('routeForType', () => {
@@ -84,6 +98,12 @@ describe('computeItemsForRule', () => {
   it('drops items that fall inside quiet hours', () => {
     const quiet: QuietHours = { start: '00:00', end: '23:59' }
     expect(computeItemsForRule(rule(), child, null, quiet, now)).toEqual([])
+  })
+
+  it('keeps the whole schedule when the quiet-hours toggle is off', () => {
+    const off: QuietHours = { start: '00:00', end: '23:59', enabled: false }
+    const items = computeItemsForRule(rule(), child, null, off, now)
+    expect(items.length).toBeGreaterThan(0)
   })
 
   it('uses the mom activity as feeding for lookup', () => {

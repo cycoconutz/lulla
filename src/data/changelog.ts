@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.41",
+    "date": "2026-10-05",
+    "title": "follow unit settings everywhere and log optional nursing volume",
+    "sha": "69ea288a3f5c0a048da497cba7f3ab4a2ef56dbe"
+  },
+  {
     "version": "0.1.40",
     "date": "2026-10-05",
     "title": "stop duplicate feeding timers and resume naps within five minutes",

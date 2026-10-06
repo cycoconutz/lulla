@@ -5,6 +5,7 @@ self.addEventListener('activate', (event) => {
 })
 
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { buildNotificationOptions } from './domain/notification'
 
 precacheAndRoute(self.__WB_MANIFEST, {})
 cleanupOutdatedCaches()
@@ -17,13 +18,7 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {}
   }
-  const title = data.title || '⏰ Lulla'
-  const options = {
-    body: data.body || 'Time to check in with Lulla.',
-    icon: 'pwa-512.svg',
-    badge: 'pwa-192.svg',
-    data: data.data ?? {},
-  }
+  const { title, ...options } = buildNotificationOptions(data)
   event.waitUntil(self.registration.showNotification(title, options))
 })
 

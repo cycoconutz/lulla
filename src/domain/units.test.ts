@@ -7,8 +7,11 @@ import {
   convertVolume,
   convertWeight,
   defaultVolume,
+  lbOzToPounds,
   lengthBounds,
   lengthUnitFor,
+  OZ_PER_LB,
+  poundsToLbOz,
   toCentimeters,
   toInches,
   toKilograms,
@@ -85,10 +88,48 @@ describe('length conversion', () => {
   })
 })
 
+describe('pounds and ounces', () => {
+  it('sums lb and oz into the stored decimal pound value', () => {
+    expect(lbOzToPounds(7, 12)).toBe(7.75)
+    expect(lbOzToPounds(8, 0)).toBe(8)
+    expect(lbOzToPounds(0, 8)).toBe(0.5)
+  })
+
+  it('keeps a single ounce, which 2-decimal rounding would erase', () => {
+    // 1 oz is 0.0625 lb, so this only survives with 4-decimal precision.
+    expect(lbOzToPounds(0, 1)).toBe(0.0625)
+    expect(lbOzToPounds(8, 1)).toBe(8.0625)
+  })
+
+  it('carries ounces of 16 or more into the pounds', () => {
+    expect(lbOzToPounds(7, 18)).toBe(8.125)
+    expect(poundsToLbOz(lbOzToPounds(7, 18))).toEqual({ lb: 8, oz: 2 })
+  })
+
+  it('splits a stored decimal back into the two fields', () => {
+    expect(poundsToLbOz(7.75)).toEqual({ lb: 7, oz: 12 })
+    expect(poundsToLbOz(8)).toEqual({ lb: 8, oz: 0 })
+    expect(poundsToLbOz(8.0625)).toEqual({ lb: 8, oz: 1 })
+  })
+
+  it('round-trips every whole ounce of a pound without drift', () => {
+    for (let oz = 0; oz < OZ_PER_LB; oz++) {
+      expect(poundsToLbOz(lbOzToPounds(7, oz))).toEqual({ lb: 7, oz })
+    }
+  })
+
+  it('reads a kg value into the fields via the shared factor', () => {
+    const lb = toPounds(10, 'kg')
+    expect(poundsToLbOz(lb)).toEqual({ lb: 22, oz: 1 })
+    // Whole-oz entry quantizes, so the round trip is only exact to half an ounce.
+    expect(Math.abs(lbOzToPounds(22, 1) - lb)).toBeLessThan(1 / (OZ_PER_LB * 2))
+  })
+})
+
 describe('stepper bounds', () => {
   it('gives each volume unit its own step and max', () => {
     expect(volumeBounds('oz')).toEqual({ step: 0.5, max: 32 })
-    expect(volumeBounds('ml')).toEqual({ step: 5, max: 1000 })
+    expect(volumeBounds('ml')).toEqual({ step: 0.1, max: 1000 })
   })
 
   it('gives each weight unit its own step and max', () => {
@@ -109,9 +150,18 @@ describe('default volume', () => {
   })
 
   it('snaps the converted default onto the unit step', () => {
-    // 2 oz is 59.14 ml, which is off the 5 ml grid.
-    expect(defaultVolume(2, 'ml')).toBe(60)
-    expect(defaultVolume(3, 'ml')).toBe(90)
+    // 2 oz is 59.14 ml, which is off the 0.1 ml grid.
+    expect(defaultVolume(2, 'ml')).toBe(59.1)
+    expect(defaultVolume(3, 'ml')).toBe(88.7)
+  })
+
+  it('rounds the snapped ml seed to a clean 1-decimal value', () => {
+    // At a 0.1 step, `snap * step` carries float noise that the Stepper would
+    // otherwise render verbatim, e.g. "118.30000000000001 ml".
+    for (const ounces of [1, 2, 3, 4, 8]) {
+      const seed = defaultVolume(ounces, 'ml')
+      expect(String(seed)).toBe(seed.toFixed(1))
+    }
   })
 
   it('always lands on the step grid, so minus never clamps straight to zero', () => {
@@ -119,7 +169,8 @@ describe('default volume', () => {
       const step = volumeBounds(unit).step
       for (const ounces of [1, 2, 3, 4, 8]) {
         const seed = defaultVolume(ounces, unit)
-        expect(seed % step).toBeCloseTo(0, 10)
+        // Divided rather than `seed % step`, which is float noise at 0.1.
+        expect(seed / step).toBeCloseTo(Math.round(seed / step), 10)
         expect(seed - step).toBeGreaterThan(0)
       }
     }

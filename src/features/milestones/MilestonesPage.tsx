@@ -26,10 +26,13 @@ import { nowIso, ageInMonths, newId } from '../../domain/time'
 import {
   convertLength,
   convertWeight,
+  lbOzToPounds,
   lengthBounds,
+  OZ_PER_LB,
+  poundsToLbOz,
   toCentimeters,
   toKilograms,
-  weightBounds,
+  WEIGHT_BOUNDS,
   type LengthUnit,
   type WeightUnit,
 } from '../../domain/units'
@@ -194,13 +197,19 @@ function AddMeasurement({
   onClose: () => void
   editing?: Measurement | null
 }) {
-  const { weight, length } = useUnits()
+  const { length } = useUnits()
   const isWeight = kind === 'weight'
-  // Head circumference stays in cm; weight and height follow the user's toggle.
+  // Head circumference stays in cm; height follows the user's toggle. Weight is
+  // always entered as lb + oz, since that is how a clinic reports it, so the
+  // Settings weight toggle does not reach this form.
   const lengthUnit: LengthUnit = kind === 'height' ? length : 'cm'
-  const unit: Measurement['unit'] = isWeight ? weight : lengthUnit
-  const bounds = isWeight ? weightBounds(weight) : lengthBounds(lengthUnit)
-  const seed = isWeight ? convertWeight(8, 'lb', weight) : convertLength(60, 'cm', lengthUnit)
+  const bounds = lengthBounds(lengthUnit)
+  const seed = convertLength(60, 'cm', lengthUnit)
+  // A kg-stored row is converted on the way into the fields, so editing one
+  // saved before this change does not show a pounds number as kg.
+  const editLbOz = editing ? poundsToLbOz(convertWeight(editing.value, editing.unit as WeightUnit, 'lb')) : null
+  const [lb, setLb] = useState(editLbOz?.lb ?? 8)
+  const [oz, setOz] = useState(editLbOz?.oz ?? 0)
   const [value, setValue] = useState(editing?.value ?? +seed.toFixed(1))
   const [at, setAt] = useState<string>(
     editing ? toLocalStamp(editing.at) : new Date().toISOString().slice(0, 10) + 'T00:00:00',
@@ -208,8 +217,14 @@ function AddMeasurement({
   const [error, setError] = useState<string | null>(null)
 
   const save = () => {
-    if (!Number.isFinite(value) || value <= 0) {
+    const saved = isWeight ? lbOzToPounds(lb, oz) : value
+    const unit: Measurement['unit'] = isWeight ? 'lb' : lengthUnit
+    if (!Number.isFinite(saved) || saved <= 0) {
       setError('Enter a value greater than zero.')
+      return
+    }
+    if (isWeight && (!Number.isFinite(lb) || lb < 0 || !Number.isFinite(oz) || oz < 0)) {
+      setError('Enter a valid weight.')
       return
     }
     const atMs = new Date(at).getTime()
@@ -219,16 +234,49 @@ function AddMeasurement({
     }
     const atIso = new Date(atMs).toISOString()
     if (editing?.id != null) {
-      void updateMeasurement({ ...editing, kind, value, unit, at: atIso })
+      void updateMeasurement({ ...editing, kind, value: saved, unit, at: atIso })
     } else {
-      void addMeasurement({ childId, kind, value, unit, at: atIso })
+      void addMeasurement({ childId, kind, value: saved, unit, at: atIso })
     }
     onClose()
   }
 
   return (
     <div className="space-y-4">
-      <Stepper value={value} onChange={(v) => { setValue(v); setError(null) }} step={bounds.step} min={0} max={bounds.max} suffix={unit} />
+      {isWeight ? (
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs font-bold text-muted">lb</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={WEIGHT_BOUNDS.lb.max}
+              step={1}
+              value={lb}
+              onChange={(e) => { setLb(e.target.value === '' ? NaN : e.target.valueAsNumber); setError(null) }}
+              className="mt-1 w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-2xl font-extrabold tabular-nums outline-none focus:border-gold"
+              aria-label="Weight in pounds"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold text-muted">oz</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={OZ_PER_LB - 1}
+              step={1}
+              value={oz}
+              onChange={(e) => { setOz(e.target.value === '' ? NaN : e.target.valueAsNumber); setError(null) }}
+              className="mt-1 w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-2xl font-extrabold tabular-nums outline-none focus:border-gold"
+              aria-label="Weight in ounces"
+            />
+          </label>
+        </div>
+      ) : (
+        <Stepper value={value} onChange={(v) => { setValue(v); setError(null) }} step={bounds.step} min={0} max={bounds.max} suffix={lengthUnit} />
+      )}
       <label className="block text-xs font-bold text-muted">Date</label>
       <input
         type="datetime-local"
@@ -270,7 +318,7 @@ function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKin
             <span>{new Date(m.at).toLocaleDateString()}</span>
             <span className="flex items-center gap-1.5">
               <span className="tabular-nums">
-                {m.value} {m.unit}
+                {formatMeasurement(m)}
               </span>
               <button
                 onClick={() => setEditing(m)}
@@ -635,6 +683,18 @@ function Health({ childId }: { childId: EntityId }) {
 }
 
 /** Plots against the WHO kg/cm reference, so values are converted, not reinterpreted. */
+/**
+ * A weight row reads back as lb + oz rather than a decimal, so 7.75 shows as
+ * "7 lb 12 oz". A kg row predating the lb/oz form still shows its own unit.
+ */
+function formatMeasurement(m: Measurement): string {
+  if (m.kind === 'weight' && m.unit === 'lb') {
+    const { lb, oz } = poundsToLbOz(m.value)
+    return oz === 0 ? `${lb} lb` : `${lb} lb ${oz} oz`
+  }
+  return `${m.value} ${m.unit}`
+}
+
 function convert(m: Measurement, kind: GrowthKind): number {
   if (kind === 'weight') return +toKilograms(m.value, m.unit as WeightUnit).toFixed(2)
   return +toCentimeters(m.value, m.unit as LengthUnit).toFixed(1)
