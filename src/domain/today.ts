@@ -1,4 +1,5 @@
 import type { EventRecord } from './types'
+import { toOunces } from './units'
 
 export interface TodaySummary {
   feedingCount: number
@@ -10,9 +11,6 @@ export interface TodaySummary {
   wetDiapers: number
   dirtyDiapers: number
 }
-
-const toOunces = (amount: number, unit: 'oz' | 'ml') =>
-  unit === 'ml' ? amount / 29.57 : amount
 
 export function summarizeToday(events: EventRecord[]): TodaySummary {
   const s: TodaySummary = {
@@ -37,8 +35,11 @@ export function summarizeToday(events: EventRecord[]): TodaySummary {
     } else if (e.type === 'feeding') {
       s.feedingCount += 1
       const p = e.payload as { kind: string; amount?: number; unit?: 'oz' | 'ml'; durationSeconds?: number; foods?: string[] }
-      if (p.kind === 'bottle' && p.amount && p.unit) s.milkOunces += toOunces(p.amount, p.unit)
-      if (p.kind === 'pump' && p.amount && p.unit) s.milkOunces += toOunces(p.amount, p.unit)
+      // `amount` is optional on a nursing session, so a session logged without
+      // one adds minutes but no volume.
+      if ((p.kind === 'bottle' || p.kind === 'pump' || p.kind === 'breast') && p.amount && p.unit) {
+        s.milkOunces += toOunces(p.amount, p.unit)
+      }
       if (p.kind === 'breast' && p.durationSeconds) s.breastMinutes += p.durationSeconds / 60
       if (p.kind === 'solids' && p.foods) s.solidsCount += 1
     }
@@ -81,7 +82,7 @@ function summarizeFeed(e: EventRecord): string {
   const at = new Date(e.startedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   switch (p.kind) {
     case 'breast':
-      return `${at} · breast ${p.side}`
+      return `${at} · breast ${p.side}${p.amount != null && p.unit ? ` · ${p.amount} ${p.unit}` : ''}`
     case 'bottle':
       return `${at} · ${p.amount} ${p.unit}`
     case 'pump':

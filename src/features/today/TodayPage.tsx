@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useNow } from '../../hooks/useNow'
+import { useVolumeUnit } from '../../hooks/useUnits'
+import { convertVolume } from '../../domain/units'
 import { eventsOnDay, latestEventOfTypes } from '../../domain/repositories'
 import type { EventRecord } from '../../domain/types'
 import { summarizeToday, selectStatusCards } from '../../domain/today'
@@ -25,6 +27,7 @@ export function TodayPage() {
   const navigate = useNavigate()
   const { selected } = useSelectedChild()
   const now = useNow(30000)
+  const volume = useVolumeUnit()
   const activeTimers = useUIStore((s) => s.activeTimers)
 
   const eventsToday = useLiveQuery(
@@ -120,7 +123,10 @@ export function TodayPage() {
           <Row label="Feeds" value={`${summary.feedingCount}`} />
           <Row label="Diapers" value={`${summary.diaperCount}${summary.dirtyDiapers ? ` (${summary.dirtyDiapers} dirty)` : ''}`} />
           <Row label="Breast" value={summary.breastMinutes ? `${Math.round(summary.breastMinutes)}m` : '—'} />
-          <Row label="Milk bottle/pump" value={summary.milkOunces ? `${summary.milkOunces.toFixed(1)} oz` : '—'} />
+          <Row
+            label="Milk bottle/pump"
+            value={summary.milkOunces ? `${convertVolume(summary.milkOunces, 'oz', volume).toFixed(1)} ${volume}` : '—'}
+          />
           <Row label="Sleep" value={formatHours(summary.sleepMinutes)} />
           <Row label="Solids" value={`${summary.solidsCount}`} />
         </div>

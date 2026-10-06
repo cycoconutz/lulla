@@ -3,7 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useChartPalette } from '../../hooks/useTheme'
+import { useVolumeUnit } from '../../hooks/useUnits'
 import { eventsRange, eventsForChild } from '../../domain/repositories'
+import { convertVolume, toOunces } from '../../domain/units'
 import type { EventRecord } from '../../domain/types'
 import { downloadCsv, exportBackup, downloadJson } from '../../db/exportImport'
 import { Segmented } from '../../components/ui/Segmented'
@@ -25,8 +27,18 @@ export function TrendsPage() {
   )
 
   const palette = useChartPalette()
+  const volume = useVolumeUnit()
 
-  const data = useMemo(() => buildDaily(eventsWeek ?? [], selected?.birthDate ?? ''), [eventsWeek, selected?.birthDate])
+  // Rows are summed in ounces, then converted once for display so a mixed-unit
+  // week still adds up correctly.
+  const data = useMemo(
+    () =>
+      buildDaily(eventsWeek ?? [], selected?.birthDate ?? '').map((d) => ({
+        ...d,
+        milk: +convertVolume(d.milkOz, 'oz', volume).toFixed(1),
+      })),
+    [eventsWeek, selected?.birthDate, volume],
+  )
 
   if (!selected) return null
 
@@ -72,7 +84,7 @@ export function TrendsPage() {
               <XAxis dataKey="label" tick={{ fontSize: 11, fill: palette.tick }} />
               <YAxis tick={{ fontSize: 11, fill: palette.tick }} />
               <Tooltip />
-              <Line type="monotone" dataKey="milkOz" stroke="#c98d74" strokeWidth={3} dot={{ r: 4 }} name="oz" />
+              <Line type="monotone" dataKey="milk" stroke="#c98d74" strokeWidth={3} dot={{ r: 4 }} name={volume} />
             </LineChart>
           ) : metric === 'sleep' ? (
             <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
@@ -124,6 +136,7 @@ interface DayRow {
   awakeHrs: number
   feeds: number
   diapers: number
+  /** Canonical ounces; the chart plots it converted to the user's unit. */
   milkOz: number
 }
 
@@ -157,8 +170,8 @@ function buildDaily(events: EventRecord[], _birthDate: string): DayRow[] {
         row.feedHrs += (new Date(e.endedAt).getTime() - new Date(e.startedAt).getTime()) / 3600000
       }
       const p = e.payload as { kind: string; amount?: number; unit?: 'oz' | 'ml' }
-      if ((p.kind === 'bottle' || p.kind === 'pump') && p.amount && p.unit) {
-        row.milkOz += p.unit === 'ml' ? p.amount / 29.57 : p.amount
+      if ((p.kind === 'bottle' || p.kind === 'pump' || p.kind === 'breast') && p.amount && p.unit) {
+        row.milkOz += toOunces(p.amount, p.unit)
       }
     } else if (e.type === 'diaper') {
       row.diapers += 1

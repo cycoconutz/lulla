@@ -1,3 +1,5 @@
+import { toCentimeters, toKilograms, type LengthUnit, type WeightUnit } from './units'
+
 export type GrowthKind = 'weight' | 'height' | 'head'
 export type Sex = 'boy' | 'girl'
 
@@ -134,10 +136,10 @@ function convertToRef(
 ): number | null {
   switch (kind) {
     case 'weight':
-      return unit === 'lb' ? value * 0.4536 : value
+      return toKilograms(value, unit as WeightUnit)
     case 'height':
     case 'head':
-      return unit === 'in' ? value * 2.54 : value
+      return toCentimeters(value, unit as LengthUnit)
     default:
       return null
   }

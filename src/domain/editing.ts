@@ -141,6 +141,9 @@ export function applyEdit(rec: EventRecord, draft: EventDraft): EditOutcome {
         if (!Number.isFinite(minutes) || minutes <= 0) {
           return { ok: false, error: 'Session length must be greater than zero.' }
         }
+        if (p.amount != null && (!Number.isFinite(p.amount) || p.amount < 0)) {
+          return { ok: false, error: 'Enter a valid amount.' }
+        }
         const endedAt = at(startMs + p.durationSeconds * 1000)
         return {
           ok: true,
@@ -148,7 +151,15 @@ export function applyEdit(rec: EventRecord, draft: EventDraft): EditOutcome {
             ...rec,
             startedAt: at(startMs),
             endedAt,
-            payload: { kind: 'breast', side: p.side, durationSeconds: Math.round(p.durationSeconds) },
+            // `amount`/`unit` are spread rather than named so a session logged
+            // without a volume keeps having none, instead of gaining `undefined` keys.
+            payload: {
+              ...p,
+              kind: 'breast',
+              side: p.side,
+              durationSeconds: Math.round(p.durationSeconds),
+              ...(p.amount == null ? {} : { amount: p.amount, unit: p.unit ?? 'oz' }),
+            },
           },
         }
       }

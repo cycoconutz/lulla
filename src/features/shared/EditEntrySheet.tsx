@@ -15,6 +15,7 @@ import {
   type EventDraft,
 } from '../../domain/editing'
 import { FIRST_FOODS } from '../../domain/foods'
+import { volumeBounds } from '../../domain/units'
 
 const DIAPER_STATUSES = [
   { value: 'wet', label: 'Wet' },
@@ -188,13 +189,30 @@ function FeedingFields({ draft, set }: { draft: Extract<EventDraft, { type: 'fee
             max={240}
             suffix="min"
           />
+          {p.amount != null && p.unit && (
+            <Stepper
+              value={p.amount}
+              onChange={(amount) => patch({ amount })}
+              step={volumeBounds(p.unit).step}
+              min={0}
+              max={volumeBounds(p.unit).max}
+              suffix={p.unit}
+            />
+          )}
         </>
       )}
 
       {p.kind === 'bottle' && (
         <>
           <Segmented value={p.milk} onChange={(milk) => patch({ milk })} options={[...MILKS]} />
-          <Stepper value={p.amount} onChange={(amount) => patch({ amount })} step={0.5} min={0} max={32} suffix={p.unit} />
+          <Stepper
+            value={p.amount}
+            onChange={(amount) => patch({ amount })}
+            step={volumeBounds(p.unit).step}
+            min={0}
+            max={volumeBounds(p.unit).max}
+            suffix={p.unit}
+          />
         </>
       )}
 
@@ -209,7 +227,14 @@ function FeedingFields({ draft, set }: { draft: Extract<EventDraft, { type: 'fee
               { value: 'both', label: 'Both' },
             ]}
           />
-          <Stepper value={p.amount} onChange={(amount) => patch({ amount })} step={0.5} min={0} max={32} suffix={p.unit} />
+          <Stepper
+            value={p.amount}
+            onChange={(amount) => patch({ amount })}
+            step={volumeBounds(p.unit).step}
+            min={0}
+            max={volumeBounds(p.unit).max}
+            suffix={p.unit}
+          />
         </>
       )}
 

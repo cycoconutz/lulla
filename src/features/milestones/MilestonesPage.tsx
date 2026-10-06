@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useTheme } from '../../hooks/useTheme'
+import { useUnits } from '../../hooks/useUnits'
 import {
   measurementsForKind,
   addMeasurement,
@@ -22,6 +23,16 @@ import {
 } from '../../domain/growth'
 import { db } from '../../db/schema'
 import { nowIso, ageInMonths, newId } from '../../domain/time'
+import {
+  convertLength,
+  convertWeight,
+  lengthBounds,
+  toCentimeters,
+  toKilograms,
+  weightBounds,
+  type LengthUnit,
+  type WeightUnit,
+} from '../../domain/units'
 import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
@@ -183,10 +194,14 @@ function AddMeasurement({
   onClose: () => void
   editing?: Measurement | null
 }) {
+  const { weight, length } = useUnits()
   const isWeight = kind === 'weight'
-  const step = isWeight ? 0.1 : 0.5
-  const unit = isWeight ? 'lb' : kind === 'height' ? 'in' : 'cm'
-  const [value, setValue] = useState(editing?.value ?? (isWeight ? 8 : 60))
+  // Head circumference stays in cm; weight and height follow the user's toggle.
+  const lengthUnit: LengthUnit = kind === 'height' ? length : 'cm'
+  const unit: Measurement['unit'] = isWeight ? weight : lengthUnit
+  const bounds = isWeight ? weightBounds(weight) : lengthBounds(lengthUnit)
+  const seed = isWeight ? convertWeight(8, 'lb', weight) : convertLength(60, 'cm', lengthUnit)
+  const [value, setValue] = useState(editing?.value ?? +seed.toFixed(1))
   const [at, setAt] = useState<string>(
     editing ? toLocalStamp(editing.at) : new Date().toISOString().slice(0, 10) + 'T00:00:00',
   )
@@ -213,7 +228,7 @@ function AddMeasurement({
 
   return (
     <div className="space-y-4">
-      <Stepper value={value} onChange={(v) => { setValue(v); setError(null) }} step={step} min={0} max={isWeight ? 80 : 140} suffix={unit} />
+      <Stepper value={value} onChange={(v) => { setValue(v); setError(null) }} step={bounds.step} min={0} max={bounds.max} suffix={unit} />
       <label className="block text-xs font-bold text-muted">Date</label>
       <input
         type="datetime-local"
@@ -619,7 +634,8 @@ function Health({ childId }: { childId: EntityId }) {
   )
 }
 
+/** Plots against the WHO kg/cm reference, so values are converted, not reinterpreted. */
 function convert(m: Measurement, kind: GrowthKind): number {
-  if (kind === 'weight') return m.unit === 'lb' ? +(m.value * 0.4536).toFixed(2) : m.value
-  return m.unit === 'in' ? +(m.value * 2.54).toFixed(1) : m.value
+  if (kind === 'weight') return +toKilograms(m.value, m.unit as WeightUnit).toFixed(2)
+  return +toCentimeters(m.value, m.unit as LengthUnit).toFixed(1)
 }

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.40",
+    "date": "2026-10-05",
+    "title": "stop duplicate feeding timers and resume naps within five minutes",
+    "sha": "4ff4d0487ba6e02ddcc265654abd2ac0353fc2a3"
+  },
+  {
+    "version": "0.1.39",
+    "date": "2026-10-05",
+    "title": "edit logged entries and stop the page jumping between timer actions",
+    "sha": "0656049e734a5d85540b6f9ba1461d245eed14ce"
+  },
+  {
     "version": "0.1.38",
     "date": "2026-10-05",
     "title": "dark mode styling for diaper quick-log buttons",

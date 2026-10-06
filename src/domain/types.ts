@@ -19,7 +19,12 @@ export type EventType =
 export type BreastSide = 'left' | 'right' | 'both'
 
 export type FeedingPayload =
-  | { kind: 'breast'; side: BreastSide; durationSeconds: number }
+  /**
+   * `amount`/`unit` are optional and only present when a session was logged
+   * with a volume. They are counted in the milk total like a bottle, and are
+   * never written as 0 so existing rows and the sync snapshot stay unchanged.
+   */
+  | { kind: 'breast'; side: BreastSide; durationSeconds: number; amount?: number; unit?: 'oz' | 'ml' }
   | {
       kind: 'bottle'
       milk: 'formula' | 'breastmilk' | 'other'

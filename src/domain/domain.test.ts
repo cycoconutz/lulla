@@ -81,4 +81,21 @@ describe('summarizeToday', () => {
     expect(s.wetDiapers).toBe(1)
     expect(s.dirtyDiapers).toBe(1)
   })
+
+  it('counts a nursing session that was logged with an amount', () => {
+    const base = { childId: 1, type: 'feeding' as const, startedAt: '2026-01-01T08:00:00.000Z', createdAt: '2026-01-01T00:00:00.000Z' }
+    const s = summarizeToday([
+      { ...base, payload: { kind: 'breast', side: 'left', durationSeconds: 600, amount: 2.5, unit: 'oz' } },
+      { ...base, payload: { kind: 'breast', side: 'right', durationSeconds: 300, amount: 100, unit: 'ml' } },
+    ])
+    expect(s.milkOunces).toBeCloseTo(2.5 + 100 / 29.57, 10)
+    expect(s.breastMinutes).toBe(15)
+  })
+
+  it('adds no milk for a nursing session logged without an amount', () => {
+    const base = { childId: 1, type: 'feeding' as const, startedAt: '2026-01-01T08:00:00.000Z', createdAt: '2026-01-01T00:00:00.000Z' }
+    const s = summarizeToday([{ ...base, payload: { kind: 'breast', side: 'left', durationSeconds: 600 } }])
+    expect(s.milkOunces).toBe(0)
+    expect(s.breastMinutes).toBe(10)
+  })
 })

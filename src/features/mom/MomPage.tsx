@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { parentEntriesFor, addParentEntry } from '../../domain/repositories'
+import { useWeightUnit } from '../../hooks/useUnits'
+import { convertWeight } from '../../domain/units'
 import type { ParentProfile } from '../../domain/types'
 import { nowIso } from '../../domain/time'
 import { Segmented } from '../../components/ui/Segmented'
@@ -162,15 +164,23 @@ function Postpartum() {
 }
 
 function WeightForm({ profile, onClose }: { profile: ParentProfile; onClose: () => void }) {
-  const [value, setValue] = useState(140)
+  const weight = useWeightUnit()
+  const [value, setValue] = useState(() => +convertWeight(140, 'lb', weight).toFixed(1))
   const [at, setAt] = useState<string>(nowIso())
   const save = () => {
-    void addParentEntry({ profile, kind: 'weight', at, payload: { value, unit: 'lb' } })
+    void addParentEntry({ profile, kind: 'weight', at, payload: { value, unit: weight } })
     onClose()
   }
   return (
     <div className="space-y-4">
-      <Stepper value={value} onChange={setValue} step={0.2} min={80} max={400} suffix="lb" />
+      <Stepper
+        value={value}
+        onChange={setValue}
+        step={weight === 'kg' ? 0.1 : 0.2}
+        min={weight === 'kg' ? 36 : 80}
+        max={weight === 'kg' ? 180 : 400}
+        suffix={weight}
+      />
       <label className="block text-xs font-bold text-muted">Time</label>
       <DateTimeField value={at} onChange={setAt} />
       <button onClick={save} className="btn-gold w-full !py-4">

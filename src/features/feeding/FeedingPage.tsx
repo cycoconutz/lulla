@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
+import { useVolumeUnit } from '../../hooks/useUnits'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import type { EntityId, EventRecord, FeedingPayload } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
+import { defaultVolume, volumeBounds } from '../../domain/units'
 import { useUIStore } from '../../store/ui'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
@@ -158,11 +160,21 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
   const [side, setSide] = useState<'left' | 'right'>(defaultSide)
   const [minutes, setMinutes] = useState(15)
   const [start, setStart] = useState<string>(nowIso())
+  const volume = useVolumeUnit()
+  const [withAmount, setWithAmount] = useState(false)
+  const [amount, setAmount] = useState(() => defaultVolume(2, volume))
 
   const save = () => {
     const startMs = new Date(start).getTime()
     const durationSec = Math.round(minutes * 60)
-    const payload: FeedingPayload = { kind: 'breast', side, durationSeconds: durationSec }
+    const payload: FeedingPayload = {
+      kind: 'breast',
+      side,
+      durationSeconds: durationSec,
+      // Left unset, the keys are omitted rather than written as 0 so existing
+      // rows and the sync snapshot are unaffected.
+      ...(withAmount ? { amount, unit: volume } : {}),
+    }
     void recordEvent({
       childId,
       type: 'feeding',
@@ -173,6 +185,7 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
     })
     setOpen(false)
     setMinutes(15)
+    setWithAmount(false)
   }
 
   return (
@@ -197,6 +210,24 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
             ]}
           />
           <Stepper value={minutes} onChange={setMinutes} step={1} min={1} max={240} suffix="min" />
+          <button
+            type="button"
+            onClick={() => setWithAmount((w) => !w)}
+            aria-pressed={withAmount}
+            className={`chip ${withAmount ? 'chip-on' : ''}`}
+          >
+            {withAmount ? 'Milk amount on' : 'Add milk amount'}
+          </button>
+          {withAmount && (
+            <Stepper
+              value={amount}
+              onChange={setAmount}
+              step={volumeBounds(volume).step}
+              min={0}
+              max={volumeBounds(volume).max}
+              suffix={volume}
+            />
+          )}
           <label className="block text-xs font-bold text-muted">Started at</label>
           <DateTimeField value={start} onChange={setStart} />
           <button onClick={save} className="btn-gold w-full !py-4">
@@ -210,15 +241,17 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
 
 function BottleLog({ childId }: { childId: EntityId }) {
   const [open, setOpen] = useState(false)
+  const volume = useVolumeUnit()
+  const bounds = volumeBounds(volume)
   const [milk, setMilk] = useState<'formula' | 'breastmilk' | 'other'>('formula')
-  const [amount, setAmount] = useState(3)
+  const [amount, setAmount] = useState(() => defaultVolume(3, volume))
   const [at, setAt] = useState<string>(nowIso())
 
   const save = () => {
-    const payload: FeedingPayload = { kind: 'bottle', milk, amount, unit: 'oz' }
+    const payload: FeedingPayload = { kind: 'bottle', milk, amount, unit: volume }
     void recordEvent({ childId, type: 'feeding', startedAt: at, payload, createdAt: nowIso() })
     setOpen(false)
-    setAmount(3)
+    setAmount(defaultVolume(3, volume))
   }
 
   return (
@@ -237,7 +270,7 @@ function BottleLog({ childId }: { childId: EntityId }) {
               { value: 'other', label: 'Other' },
             ]}
           />
-          <Stepper value={amount} onChange={setAmount} step={0.5} min={0} max={16} suffix="oz" />
+          <Stepper value={amount} onChange={setAmount} step={bounds.step} min={0} max={bounds.max} suffix={volume} />
           <label className="block text-xs font-bold text-muted">Time</label>
           <DateTimeField value={at} onChange={setAt} />
           <button onClick={save} className="btn-gold w-full !py-4">
@@ -251,15 +284,17 @@ function BottleLog({ childId }: { childId: EntityId }) {
 
 function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSide: 'left' | 'right' | null; onStop: () => void }) {
   const [open, setOpen] = useState(false)
+  const volume = useVolumeUnit()
+  const bounds = volumeBounds(volume)
   const [side, setSide] = useState<'left' | 'right' | 'both'>('left')
-  const [amount, setAmount] = useState(2)
+  const [amount, setAmount] = useState(() => defaultVolume(2, volume))
   const [at, setAt] = useState<string>(nowIso())
 
   const save = () => {
-    const payload: FeedingPayload = { kind: 'pump', side, amount, unit: 'oz' }
+    const payload: FeedingPayload = { kind: 'pump', side, amount, unit: volume }
     void recordEvent({ childId, type: 'feeding', startedAt: at, payload, createdAt: nowIso() })
     setOpen(false)
-    setAmount(2)
+    setAmount(defaultVolume(2, volume))
   }
 
   const start = (s: 'left' | 'right') => {
@@ -267,7 +302,7 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
       childId,
       type: 'feeding',
       startedAt: nowIso(),
-      payload: { kind: 'pump', side: s, amount: 0, unit: 'oz' },
+      payload: { kind: 'pump', side: s, amount: 0, unit: volume },
       createdAt: nowIso(),
     })
   }
@@ -309,7 +344,7 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
               { value: 'both', label: 'Both' },
             ]}
           />
-          <Stepper value={amount} onChange={setAmount} step={0.5} min={0} max={16} suffix="oz" />
+          <Stepper value={amount} onChange={setAmount} step={bounds.step} min={0} max={bounds.max} suffix={volume} />
           <label className="block text-xs font-bold text-muted">Time</label>
           <DateTimeField value={at} onChange={setAt} />
           <button onClick={save} className="btn-gold w-full !py-4">
@@ -421,7 +456,7 @@ function FeedList({
 function feedTitle(p: FeedingPayload): string {
   switch (p.kind) {
     case 'breast':
-      return `Breast — ${p.side}`
+      return `Breast — ${p.side}${p.amount != null && p.unit ? ` · ${p.amount} ${p.unit}` : ''}`
     case 'bottle':
       return `Bottle · ${p.amount} ${p.unit} ${p.milk === 'formula' ? 'formula' : p.milk === 'breastmilk' ? 'breastmilk' : ''}`
     case 'pump':

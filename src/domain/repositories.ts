@@ -289,7 +289,7 @@ export const parentEntriesFor = async (profile: ParentProfile, day = new Date())
 export function feedingLabel(p: FeedingPayload): string {
   switch (p.kind) {
     case 'breast':
-      return `Breast — ${p.side}`
+      return `Breast — ${p.side}${p.amount != null && p.unit ? ` · ${p.amount} ${p.unit}` : ''}`
     case 'bottle':
       return `Bottle · ${p.amount} ${p.unit} · ${p.milk === 'formula' ? 'formula' : 'breastmilk'}`
     case 'pump':

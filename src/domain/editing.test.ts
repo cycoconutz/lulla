@@ -213,6 +213,44 @@ describe('applyEdit: feeding', () => {
     expect(out).toEqual({ ok: false, error: 'Session length must be greater than zero.' })
   })
 
+  it('preserves a nursing session\'s amount and unit', () => {
+    const rec = base({
+      type: 'feeding',
+      startedAt: '2026-03-01T10:00:00.000Z',
+      endedAt: '2026-03-01T10:15:00.000Z',
+      payload: { kind: 'breast', side: 'left', durationSeconds: 900, amount: 2.5, unit: 'ml' },
+    })
+    const draft = draftFromEvent(rec)!
+    const out = ok(setDraftMinutes(draft, 20), rec)
+    expect(out.payload).toEqual({ kind: 'breast', side: 'left', durationSeconds: 1200, amount: 2.5, unit: 'ml' })
+  })
+
+  it('does not invent an amount for a session logged without one', () => {
+    const rec = base({
+      type: 'feeding',
+      startedAt: '2026-03-01T10:00:00.000Z',
+      endedAt: '2026-03-01T10:15:00.000Z',
+      payload: { kind: 'breast', side: 'left', durationSeconds: 900 },
+    })
+    const draft = draftFromEvent(rec)!
+    const p = ok(setDraftMinutes(draft, 20), rec).payload
+    expect(p).toEqual({ kind: 'breast', side: 'left', durationSeconds: 1200 })
+    expect(Object.hasOwn(p, 'amount')).toBe(false)
+  })
+
+  it('rejects a negative nursing amount', () => {
+    const rec = base({
+      type: 'feeding',
+      startedAt: '2026-03-01T10:00:00.000Z',
+      endedAt: '2026-03-01T10:15:00.000Z',
+      payload: { kind: 'breast', side: 'left', durationSeconds: 900, amount: -1, unit: 'oz' },
+    })
+    expect(applyEdit(rec, { type: 'feeding', startedAt: rec.startedAt, payload: { kind: 'breast', side: 'left', durationSeconds: 900, amount: -1, unit: 'oz' } })).toEqual({
+      ok: false,
+      error: 'Enter a valid amount.',
+    })
+  })
+
   it('edits a bottle amount and keeps its unit', () => {
     const rec = base({ type: 'feeding', payload: { kind: 'bottle', milk: 'formula', amount: 3, unit: 'ml' } })
     const out = ok({ type: 'feeding', startedAt: rec.startedAt, payload: { kind: 'bottle', milk: 'breastmilk', amount: 4.5, unit: 'ml' } }, rec)
