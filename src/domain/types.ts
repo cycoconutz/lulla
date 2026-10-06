@@ -31,6 +31,7 @@ export type FeedingPayload =
 
 export type SleepPayload = {
   kind: 'nap' | 'night'
+  /** Set when the entry was logged with explicit times rather than by a timer. */
   startedExplicit?: boolean
   endedExplicit?: boolean
 }

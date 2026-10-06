@@ -9,16 +9,17 @@ export const SLEEP_MERGE_WINDOW_MS = 5 * 60_000
  * merge window).
  */
 export function shouldReopenSleep(
-  prev: { kind: string; endedAt?: string; endedExplicit?: boolean } | undefined,
+  prev: { kind: string; endedAt?: string } | undefined,
   newStartAt: string,
   newKind: string,
 ): boolean {
   if (!prev?.endedAt) return false
   if (prev.kind !== newKind) return false
-  // A timer the user stopped by hand is a deliberate boundary. Merging across it
-  // would reopen the same record with its original start time, so the clock
-  // appears not to move and a genuine wake-then-resleep is recorded as one nap.
-  if (prev.endedExplicit) return false
+  // A restart inside the window always resumes the previous record, whatever
+  // ended it. Stopping a timer is not a reliable statement that the child woke
+  // up: a mis-tap should not split one nap into two, and a genuine wake-up that
+  // is followed by a resleep within the window is one sleep as far as the parent
+  // is concerned. Starting a feeding timer is the boundary that ends a sleep.
   const gap = new Date(newStartAt).getTime() - new Date(prev.endedAt).getTime()
   return gap >= 0 && gap <= SLEEP_MERGE_WINDOW_MS
 }
@@ -36,7 +37,7 @@ export function findReopenCandidateIn(
     )
     .sort((a, b) => b.endedAt.localeCompare(a.endedAt))
   for (const e of ended) {
-    if (shouldReopenSleep({ kind: (e.payload as SleepPayload).kind, endedAt: e.endedAt, endedExplicit: (e.payload as SleepPayload).endedExplicit }, newStartAt, kind)) return e
+    if (shouldReopenSleep({ kind: (e.payload as SleepPayload).kind, endedAt: e.endedAt }, newStartAt, kind)) return e
   }
   return undefined
 }
@@ -73,12 +74,7 @@ export async function tryMergeManualSleep(
   const kind = (next.payload as SleepPayload).kind
   const prev = await findReopenCandidate(childId, next.startedAt, kind)
   if (!prev) return false
-  const prevPayload = prev.payload as SleepPayload
-  await updateEvent({
-    ...prev,
-    endedAt: next.endedAt,
-    payload: { ...prevPayload, endedExplicit: true },
-  })
+  await updateEvent({ ...prev, endedAt: next.endedAt })
   await deleteEvent(next.id)
   return true
 }

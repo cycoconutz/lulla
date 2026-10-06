@@ -48,14 +48,13 @@ export function FeedingPage() {
   const pumpSide = pumpTimer ? ((pumpTimer.payload as { side: 'left' | 'right' }).side ?? 'left') : null
 
   const startBreast = (side: 'left' | 'right') => {
-    void recordEvent({
+    void useUIStore.getState().startTimer({
       childId: selected.id!,
       type: 'feeding',
       startedAt: nowIso(),
       payload: { kind: 'breast', side, durationSeconds: 0 },
       createdAt: nowIso(),
     })
-    void useUIStore.getState().loadActiveTimers(selected.id!)
   }
 
   return (
@@ -264,14 +263,13 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
   }
 
   const start = (s: 'left' | 'right') => {
-    void recordEvent({
+    void useUIStore.getState().startTimer({
       childId,
       type: 'feeding',
       startedAt: nowIso(),
       payload: { kind: 'pump', side: s, amount: 0, unit: 'oz' },
       createdAt: nowIso(),
     })
-    void useUIStore.getState().loadActiveTimers(childId)
   }
 
   return (

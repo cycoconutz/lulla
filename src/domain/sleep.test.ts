@@ -29,11 +29,9 @@ describe('shouldReopenSleep', () => {
     expect(shouldReopenSleep(prev, '2026-01-01T10:04:00.000Z', 'night')).toBe(false)
   })
 
-  it('does not merge across a hand-stopped record, however quick the restart', () => {
-    const stopped = { ...prev, endedExplicit: true }
-    expect(shouldReopenSleep(stopped, '2026-01-01T10:00:01.000Z', 'nap')).toBe(false)
-    expect(shouldReopenSleep(stopped, '2026-01-01T10:04:00.000Z', 'nap')).toBe(false)
-    expect(shouldReopenSleep({ ...prev, endedExplicit: false }, '2026-01-01T10:04:00.000Z', 'nap')).toBe(true)
+  it('resumes across a hand-stopped record, however quick the restart', () => {
+    expect(shouldReopenSleep(prev, '2026-01-01T10:00:01.000Z', 'nap')).toBe(true)
+    expect(shouldReopenSleep(prev, '2026-01-01T10:04:00.000Z', 'nap')).toBe(true)
   })
 
   it('does not merge an un-ended record or when the new start predates the end', () => {
