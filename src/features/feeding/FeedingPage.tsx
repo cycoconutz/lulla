@@ -3,15 +3,18 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useVolumeUnit } from '../../hooks/useUnits'
 import { useExitTransition } from '../../hooks/useExitTransition'
+import { useDayNav } from '../../hooks/useDayNav'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import type { EntityId, EventRecord, FeedingPayload } from '../../domain/types'
-import { nowIso, formatTime } from '../../domain/time'
-import { defaultVolume, volumeBounds } from '../../domain/units'
+import { nowIso, formatTime, isoFromParts, dayLabel } from '../../domain/time'
+import { localDateKey } from '../../domain/calendar'
+import { defaultVolume, volumeBounds, convertVolume, toOunces } from '../../domain/units'
 import { useUIStore } from '../../store/ui'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { DayNav } from '../../components/ui/DayNav'
 import { NextFeedCard } from './NextFeedCard'
 import { FIRST_FOODS } from '../../domain/foods'
 import { EditEntrySheet } from '../shared/EditEntrySheet'
@@ -21,9 +24,10 @@ type Tab = 'breast' | 'bottle' | 'pump' | 'solids'
 
 export function FeedingPage() {
   const { selected } = useSelectedChild()
-  const eventsToday = useLiveQuery(
-    () => (selected ? eventsOnDay(selected.id!) : Promise.resolve([])),
-    [selected?.id],
+  const { day, isToday, prev, next, goToday } = useDayNav()
+  const dayEvents = useLiveQuery(
+    () => (selected ? eventsOnDay(selected.id!, day) : Promise.resolve([])),
+    [selected?.id, day],
     [],
   )
   const activeTimers = useUIStore((s) => s.activeTimers)
@@ -31,7 +35,13 @@ export function FeedingPage() {
   const [tab, setTab] = useState<Tab>('breast')
   const [editing, setEditing] = useState<EventRecord | null>(null)
 
-  const feedEvents = (eventsToday ?? []).filter((e) => e.type === 'feeding')
+  const feedEvents = (dayEvents ?? []).filter((e) => e.type === 'feeding')
+
+  // Backfill forms on a past day: default the time to that day at the current
+  // clock time, so nothing silently lands in "today".
+  const backfillAt = !isToday
+    ? isoFromParts(localDateKey(day), new Date().getHours(), new Date().getMinutes())
+    : undefined
 
   const lastBreastSide = useMemo(() => {
     const breast = feedEvents.filter(
@@ -42,6 +52,24 @@ export function FeedingPage() {
     const side = (last.payload as { side?: 'left' | 'right' }).side
     return side === 'left' || side === 'right' ? side : null
   }, [feedEvents])
+
+  const visibleFeeds = feedEvents.filter(
+    (e) => !(e.endedAt === undefined && 'kind' in e.payload && (e.payload.kind === 'breast' || e.payload.kind === 'pump')),
+  )
+
+  const volume = useVolumeUnit()
+  const feedTotals = useMemo(() => {
+    let milkOz = 0
+    let solids = 0
+    for (const e of visibleFeeds) {
+      const p = e.payload as FeedingPayload
+      if (p.kind === 'solids') solids += 1
+      else if (p.kind === 'breast' || p.kind === 'bottle' || p.kind === 'pump') {
+        if (typeof p.amount === 'number' && p.unit) milkOz += toOunces(p.amount, p.unit)
+      }
+    }
+    return { feeds: visibleFeeds.length, milk: +convertVolume(milkOz, 'oz', volume).toFixed(1), solids }
+  }, [visibleFeeds, volume])
 
   if (!selected) return null
 
@@ -63,7 +91,8 @@ export function FeedingPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Feeding</h1>
-      <NextFeedCard />
+      <DayNav day={day} isToday={isToday} onPrev={prev} onNext={next} onToday={goToday} />
+      {isToday && <NextFeedCard />}
       <Segmented
         value={tab}
         onChange={setTab}
@@ -77,50 +106,63 @@ export function FeedingPage() {
 
       {tab === 'breast' && (
         <div className="space-y-3">
-          {lastBreastSide && (
-            <p className="text-sm font-bold text-muted">
-              Last feed ended on the <span className="text-gold-deep">{lastBreastSide}</span> — try the{' '}
-              <span className="text-gold-deep">{lastBreastSide === 'left' ? 'right' : 'left'}</span> side this time.
-            </p>
-          )}
-          {breastfeeding ? (
-            <div className="card text-center">
-              <p className="text-muted text-xs font-extrabold uppercase tracking-wider">
-                Nursing {(breastTimer!.payload as { side: string }).side}…
-              </p>
-              <StopTimerButton onClick={() => void stopTimer(breastTimer!)} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <SideButton side="left" hint={lastBreastSide === 'right'} onClick={() => startBreast('left')} />
-              <SideButton side="right" hint={lastBreastSide === 'left'} onClick={() => startBreast('right')} />
-            </div>
+          {isToday && (
+            <>
+              {lastBreastSide && (
+                <p className="text-sm font-bold text-muted">
+                  Last feed ended on the <span className="text-gold-deep">{lastBreastSide}</span> — try the{' '}
+                  <span className="text-gold-deep">{lastBreastSide === 'left' ? 'right' : 'left'}</span> side this time.
+                </p>
+              )}
+              {breastfeeding ? (
+                <div className="card text-center">
+                  <p className="text-muted text-xs font-extrabold uppercase tracking-wider">
+                    Nursing {(breastTimer!.payload as { side: string }).side}…
+                  </p>
+                  <StopTimerButton onClick={() => void stopTimer(breastTimer!)} />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <SideButton side="left" hint={lastBreastSide === 'right'} onClick={() => startBreast('left')} />
+                  <SideButton side="right" hint={lastBreastSide === 'left'} onClick={() => startBreast('right')} />
+                </div>
+              )}
+            </>
           )}
           <ManualBreastLog
             childId={selected.id!}
             defaultSide={lastBreastSide === 'left' ? 'right' : 'left'}
+            defaultAt={backfillAt}
           />
         </div>
       )}
 
       {tab === 'bottle' && (
-        <BottleLog childId={selected.id!} />
+        <BottleLog childId={selected.id!} defaultAt={backfillAt} />
       )}
 
       {tab === 'pump' && (
-        <PumpLog childId={selected.id!} activeSide={pumpSide} onStop={() => pumpTimer && void stopTimer(pumpTimer)} />
+        <PumpLog childId={selected.id!} activeSide={pumpSide} onStop={() => pumpTimer && void stopTimer(pumpTimer)} live={isToday} defaultAt={backfillAt} />
       )}
 
-      {tab === 'solids' && <SolidsLog childId={selected.id!} />}
+      {tab === 'solids' && <SolidsLog childId={selected.id!} defaultAt={backfillAt} />}
 
       <section>
         <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">
-          Today’s feedings
+          {isToday ? 'Today’s feedings' : `${dayLabel(day)} feedings`}
         </h2>
+        {(feedTotals.feeds > 0 || feedTotals.solids > 0) && (
+          <p className="mb-2 text-xs font-bold text-muted">
+            {feedTotals.feeds} feed{feedTotals.feeds === 1 ? '' : 's'}
+            {feedTotals.milk > 0 && ` · ${feedTotals.milk} ${volume}`}
+            {feedTotals.solids > 0 && ` · ${feedTotals.solids} solid${feedTotals.solids === 1 ? '' : 's'}`}
+          </p>
+        )}
         <FeedList
-          events={feedEvents.filter((e) => !(e.endedAt === undefined && 'kind' in e.payload && (e.payload.kind === 'breast' || e.payload.kind === 'pump')))}
+          events={visibleFeeds}
           onDelete={(id) => void deleteEvent(id)}
           onEdit={setEditing}
+          emptyText={isToday ? 'Nothing logged yet today.' : `Nothing logged on ${dayLabel(day)}.`}
         />
       </section>
 
@@ -156,7 +198,7 @@ function StopTimerButton({ onClick }: { onClick: () => void }) {
  * Log a nursing session that already finished. The side buttons can only start
  * a live timer, so there was no way to backfill a feed from earlier.
  */
-function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultSide: 'left' | 'right' }) {
+function ManualBreastLog({ childId, defaultSide, defaultAt }: { childId: EntityId; defaultSide: 'left' | 'right'; defaultAt?: string }) {
   const [open, setOpen] = useState(false)
   const [side, setSide] = useState<'left' | 'right'>(defaultSide)
   const [minutes, setMinutes] = useState(15)
@@ -193,7 +235,7 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
     <>
       <button
         onClick={() => {
-          setStart(nowIso())
+          setStart(defaultAt ?? nowIso())
           setOpen(true)
         }}
         className="btn-outline w-full"
@@ -240,7 +282,7 @@ function ManualBreastLog({ childId, defaultSide }: { childId: EntityId; defaultS
   )
 }
 
-function BottleLog({ childId }: { childId: EntityId }) {
+function BottleLog({ childId, defaultAt }: { childId: EntityId; defaultAt?: string }) {
   const [open, setOpen] = useState(false)
   const volume = useVolumeUnit()
   const bounds = volumeBounds(volume)
@@ -255,9 +297,11 @@ function BottleLog({ childId }: { childId: EntityId }) {
     setAmount(defaultVolume(3, volume))
   }
 
+  const openAt = defaultAt ?? nowIso()
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-gold w-full !py-4">
+      <button onClick={() => { setAt(openAt); setOpen(true) }} className="btn-gold w-full !py-4">
         Log a bottle
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Bottle">
@@ -283,7 +327,7 @@ function BottleLog({ childId }: { childId: EntityId }) {
   )
 }
 
-function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSide: 'left' | 'right' | null; onStop: () => void }) {
+function PumpLog({ childId, activeSide, onStop, live, defaultAt }: { childId: EntityId; activeSide: 'left' | 'right' | null; onStop: () => void; live: boolean; defaultAt?: string }) {
   const [open, setOpen] = useState(false)
   const volume = useVolumeUnit()
   const bounds = volumeBounds(volume)
@@ -308,9 +352,11 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
     })
   }
 
+  const openAt = defaultAt ?? nowIso()
+
   return (
     <div className="space-y-3">
-      {activeSide ? (
+      {live && (activeSide ? (
         <div className="card text-center">
           <p className="text-muted text-xs font-extrabold uppercase tracking-wider">
             Pumping {activeSide}…
@@ -330,8 +376,8 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
             <p className="mt-1 font-extrabold">Pump right</p>
           </button>
         </div>
-      )}
-      <button onClick={() => setOpen(true)} className="btn-outline w-full">
+      ))}
+      <button onClick={() => { setAt(openAt); setOpen(true) }} className="btn-outline w-full">
         Log finished pump session
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Pump session">
@@ -357,7 +403,7 @@ function PumpLog({ childId, activeSide, onStop }: { childId: EntityId; activeSid
   )
 }
 
-function SolidsLog({ childId }: { childId: EntityId }) {
+function SolidsLog({ childId, defaultAt }: { childId: EntityId; defaultAt?: string }) {
   const [selected, setSelected] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const [at, setAt] = useState<string>(nowIso())
@@ -372,9 +418,11 @@ function SolidsLog({ childId }: { childId: EntityId }) {
     setOpen(false)
   }
 
+  const openAt = defaultAt ?? nowIso()
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-gold w-full !py-4">
+      <button onClick={() => { setAt(openAt); setOpen(true) }} className="btn-gold w-full !py-4">
         Log solids {selected.length ? `(${selected.length})` : ''}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Solids">
@@ -412,14 +460,16 @@ function FeedList({
   events,
   onDelete,
   onEdit,
+  emptyText,
 }: {
   events: EventRecord[]
   onDelete: (id: EntityId) => void
   onEdit: (e: EventRecord) => void
+  emptyText: string
 }) {
   const { isExiting, requestDelete } = useExitTransition(onDelete)
   if (events.length === 0) {
-    return <p className="text-sm text-muted">Nothing logged yet today.</p>
+    return <p className="text-sm text-muted">{emptyText}</p>
   }
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   return (

@@ -17,8 +17,7 @@ import type { EventType, ReminderRule, Settings } from '../../domain/types'
 import { db } from '../../db/schema'
 import { listChildren } from '../../domain/repositories'
 import { exportBackup, importBackup, downloadJson } from '../../db/exportImport'
-import { eventsForChild } from '../../domain/repositories'
-import { downloadCsv } from '../../db/exportImport'
+import { downloadCsv, csvDataForChild } from '../../db/exportImport'
 import { notify, scheduleRemindersForChild } from '../../domain/reminders'
 import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
@@ -75,8 +74,7 @@ export function SettingsPage() {
 
   const csvExport = async () => {
     if (!selected) return
-    const all = await eventsForChild(selected.id!)
-    downloadCsv(all, selected.name)
+    downloadCsv(await csvDataForChild(selected.id!), selected.name)
   }
 
   const backup = async () => {

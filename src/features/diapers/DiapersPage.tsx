@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useExitTransition } from '../../hooks/useExitTransition'
+import { useDayNav } from '../../hooks/useDayNav'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import type { DiaperPayload, EntityId, EventRecord } from '../../domain/types'
-import { nowIso, formatTime } from '../../domain/time'
+import { nowIso, formatTime, isoFromParts, dayLabel } from '../../domain/time'
+import { localDateKey } from '../../domain/calendar'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
+import { DayNav } from '../../components/ui/DayNav'
 import { EditEntrySheet } from '../shared/EditEntrySheet'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Droplets, CloudRain, CloudSun, Wind, Bandage, type LucideIcon } from 'lucide-react'
@@ -31,15 +34,28 @@ const QUICK: {
 
 export function DiapersPage() {
   const { selected } = useSelectedChild()
-  const eventsToday = useLiveQuery(
-    () => (selected ? eventsOnDay(selected.id!) : Promise.resolve([])),
-    [selected?.id],
+  const { day, isToday, prev, next, goToday } = useDayNav()
+  const dayEvents = useLiveQuery(
+    () => (selected ? eventsOnDay(selected.id!, day) : Promise.resolve([])),
+    [selected?.id, day],
     [],
   )
   const [detailedOpen, setDetailedOpen] = useState(false)
   const [editing, setEditing] = useState<EventRecord | null>(null)
 
-  const diaperEvents = (eventsToday ?? []).filter((e) => e.type === 'diaper')
+  const diaperEvents = (dayEvents ?? []).filter((e) => e.type === 'diaper')
+
+  // Backfill forms on a past day: default the time to that day at the current
+  // clock time, so nothing silently lands in "today".
+  const backfillAt = !isToday
+    ? isoFromParts(localDateKey(day), new Date().getHours(), new Date().getMinutes())
+    : undefined
+
+  const totals = useMemo(() => {
+    const byStatus: Record<DiaperPayload['status'], number> = { wet: 0, dirty: 0, mixed: 0, dry: 0 }
+    for (const e of diaperEvents) byStatus[(e.payload as DiaperPayload).status] += 1
+    return { count: diaperEvents.length, byStatus }
+  }, [diaperEvents])
 
   const quick = (status: DiaperPayload['status']) => {
     if (!selected) return
@@ -47,34 +63,56 @@ export function DiapersPage() {
     void recordEvent({ childId: selected.id!, type: 'diaper', startedAt: nowIso(), payload, createdAt: nowIso() })
   }
 
+  if (!selected) return null
+
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-extrabold">Diapers</h1>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {QUICK.map((q) => (
-          <button
-            key={q.status}
-            onClick={() => quick(q.status)}
-            className={`rounded-2xl border border-sand bg-gradient-to-b ${q.bg} ${q.bgDark} p-5 text-center transition active:scale-[0.96]`}
-          >
-            <q.Icon className="mx-auto h-7 w-7" aria-hidden />
-            <p className="mt-1 font-extrabold">{q.label}</p>
-          </button>
-        ))}
-      </section>
+      <DayNav day={day} isToday={isToday} onPrev={prev} onNext={next} onToday={goToday} />
+
+      {isToday && (
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {QUICK.map((q) => (
+            <button
+              key={q.status}
+              onClick={() => quick(q.status)}
+              className={`rounded-2xl border border-sand bg-gradient-to-b ${q.bg} ${q.bgDark} p-5 text-center transition active:scale-[0.96]`}
+            >
+              <q.Icon className="mx-auto h-7 w-7" aria-hidden />
+              <p className="mt-1 font-extrabold">{q.label}</p>
+            </button>
+          ))}
+        </section>
+      )}
 
       <button onClick={() => setDetailedOpen(true)} className="btn-outline w-full">
         Log with details (time, consistency, rash)
       </button>
 
       <Sheet open={detailedOpen} onClose={() => setDetailedOpen(false)} title="Diaper details">
-        <DetailedDiaper childId={selected?.id} onClose={() => setDetailedOpen(false)} />
+        <DetailedDiaper childId={selected?.id} defaultAt={backfillAt} onClose={() => setDetailedOpen(false)} />
       </Sheet>
 
       <section>
-        <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">Today</h2>
-        <DiaperList events={diaperEvents} onDelete={(id) => void deleteEvent(id)} onEdit={setEditing} />
+        <h2 className="mb-2 text-sm font-extrabold uppercase tracking-wider text-muted">
+          {isToday ? 'Today' : dayLabel(day)}
+        </h2>
+        {totals.count > 0 && (
+          <p className="mb-2 text-xs font-bold text-muted">
+            {totals.count} diaper{totals.count === 1 ? '' : 's'}
+            {(['wet', 'dirty', 'mixed', 'dry'] as const)
+              .filter((s) => totals.byStatus[s] > 0)
+              .map((s) => ` · ${totals.byStatus[s]} ${s}`)
+              .join('')}
+          </p>
+        )}
+        <DiaperList
+          events={diaperEvents}
+          onDelete={(id) => void deleteEvent(id)}
+          onEdit={setEditing}
+          emptyText={isToday ? 'No diapers logged yet today.' : `No diapers logged on ${dayLabel(day)}.`}
+        />
       </section>
 
       <EditEntrySheet event={editing} onClose={() => setEditing(null)} />
@@ -82,11 +120,11 @@ export function DiapersPage() {
   )
 }
 
-function DetailedDiaper({ childId, onClose }: { childId?: EntityId; onClose: () => void }) {
+function DetailedDiaper({ childId, defaultAt, onClose }: { childId?: EntityId; defaultAt?: string; onClose: () => void }) {
   const [status, setStatus] = useState<DiaperPayload['status']>('dirty')
   const [rash, setRash] = useState(false)
   const [consistency, setConsistency] = useState<DiaperPayload['consistency']>('normal')
-  const [at, setAt] = useState<string>(nowIso())
+  const [at, setAt] = useState<string>(defaultAt ?? nowIso())
 
   const save = () => {
     if (!childId) return
@@ -128,13 +166,15 @@ function DiaperList({
   events,
   onDelete,
   onEdit,
+  emptyText,
 }: {
   events: EventRecord[]
   onDelete: (id: EntityId) => void
   onEdit: (e: EventRecord) => void
+  emptyText: string
 }) {
   const { isExiting, requestDelete } = useExitTransition(onDelete)
-  if (events.length === 0) return <p className="text-sm text-muted">No diapers logged yet today.</p>
+  if (events.length === 0) return <p className="text-sm text-muted">{emptyText}</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   return (
     <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">

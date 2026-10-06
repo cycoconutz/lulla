@@ -4,10 +4,10 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useChartPalette } from '../../hooks/useTheme'
 import { useVolumeUnit } from '../../hooks/useUnits'
-import { eventsRange, eventsForChild } from '../../domain/repositories'
+import { eventsRange } from '../../domain/repositories'
 import { convertVolume, toOunces } from '../../domain/units'
 import type { EventRecord } from '../../domain/types'
-import { downloadCsv, exportBackup, downloadJson } from '../../db/exportImport'
+import { downloadCsv, csvDataForChild, exportBackup, downloadJson } from '../../db/exportImport'
 import { Segmented } from '../../components/ui/Segmented'
 import { CalendarCard } from './CalendarCard'
 
@@ -50,8 +50,7 @@ export function TrendsPage() {
   ]
 
   const doCsv = async () => {
-    const all = await eventsForChild(selected.id!)
-    downloadCsv(all, selected.name)
+    downloadCsv(await csvDataForChild(selected.id!), selected.name)
   }
 
   const doBackup = async () => {

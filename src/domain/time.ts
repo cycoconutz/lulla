@@ -56,6 +56,18 @@ export function formatDate(iso: string): string {
   })
 }
 
+/** Short label for a calendar day: "Today", "Yesterday", or "Tue, Oct 6". */
+export function dayLabel(day: Date): string {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const d = new Date(day)
+  d.setHours(0, 0, 0, 0)
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000)
+  if (diff === 0) return 'Today'
+  if (diff === -1) return 'Yesterday'
+  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
 export function ageInDays(birthDate: string, at = new Date()): number {
   const b = new Date(`${birthDate}T00:00:00`)
   const diff = at.getTime() - b.getTime()

@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.43",
+    "date": "2026-10-05",
+    "title": "slide and fade deleted list rows out instead of vanishing",
+    "sha": "2126c8b6e19672ab0b8ff1d5af39321c26fc8170"
+  },
+  {
     "version": "0.1.42",
     "date": "2026-10-05",
     "title": "vibrate reminders, disable quiet hours, and enter baby weight in lb and oz",
