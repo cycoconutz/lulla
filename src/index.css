@@ -30,6 +30,44 @@
   }
 }
 
+@layer components {
+  /**
+   * Exit transition for a list row being deleted: slides left and fades out.
+   *
+   * Deliberately animates only opacity and transform. Collapsing max-height to
+   * zero would clip tall rows (a milestone with a photo and a long note) at the
+   * start of the animation. The row keeps its space while it fades, and the
+   * list closes the gap once React removes it, which reads as a snap only if
+   * the fade has not already reached zero opacity.
+   *
+   * `pointer-events: none` stops the bin from taking a second tap mid-flight.
+   * The duration must match EXIT_DURATION_MS, which is how long
+   * `useExitTransition` waits before actually deleting the row.
+   */
+  .list-item-exit {
+    pointer-events: none;
+    animation: list-item-out 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+  }
+
+  @keyframes list-item-out {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-28px);
+    }
+  }
+
+  /* No motion for anyone who asked the OS for less of it. */
+  @media (prefers-reduced-motion: reduce) {
+    .list-item-exit {
+      animation-duration: 0.01ms;
+    }
+  }
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;

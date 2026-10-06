@@ -4,6 +4,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useTheme } from '../../hooks/useTheme'
 import { useUnits } from '../../hooks/useUnits'
+import { useExitTransition } from '../../hooks/useExitTransition'
 import {
   measurementsForKind,
   addMeasurement,
@@ -307,6 +308,7 @@ function toLocalStamp(iso: string): string {
 function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKind }) {
   const ms = useLiveQuery(() => measurementsForKind(childId, kind), [childId, kind], [])
   const [editing, setEditing] = useState<Measurement | null>(null)
+  const { isExiting, requestDelete } = useExitTransition<EntityId>((id) => void deleteMeasurement(id))
   const all = ms ?? []
   if (all.length === 0 && !editing) return <p className="text-sm text-muted">No {kind} measurements yet.</p>
   const sorted = [...all].sort((a, b) => b.at.localeCompare(a.at))
@@ -314,7 +316,10 @@ function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKin
     <>
       <ul className="space-y-1.5">
         {sorted.map((m) => (
-          <li key={m.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold">
+          <li
+            key={m.id}
+            className={`flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold ${m.id && isExiting(m.id) ? 'list-item-exit' : ''}`}
+          >
             <span>{new Date(m.at).toLocaleDateString()}</span>
             <span className="flex items-center gap-1.5">
               <span className="tabular-nums">
@@ -328,7 +333,7 @@ function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKin
                 <Pencil className="h-4 w-4" aria-hidden />
               </button>
               <button
-                onClick={() => m.id && void deleteMeasurement(m.id)}
+                onClick={() => m.id && requestDelete(m.id)}
                 className="rounded-lg p-1 text-muted hover:bg-rose/10 hover:text-rose-deep"
                 aria-label={`Delete ${kind} measurement ${m.value} ${m.unit} on ${new Date(m.at).toLocaleDateString()}`}
               >
@@ -352,6 +357,7 @@ function MeasurementList({ childId, kind }: { childId: EntityId; kind: GrowthKin
  */
 function Milestones({ childId }: { childId: EntityId }) {
   const [open, setOpen] = useState(false)
+  const { isExiting, requestDelete } = useExitTransition<EntityId>((id) => void deleteEvent(id))
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
   const [at, setAt] = useState<string>(nowIso())
@@ -479,7 +485,7 @@ function Milestones({ childId }: { childId: EntityId }) {
             const photo = m.photoIds?.[0] ?? null
             const url = photo != null ? photoUrls?.get(photo) : null
             return (
-              <li key={m.id} className="card !p-3">
+              <li key={m.id} className={`card !p-3 ${m.id && isExiting(m.id) ? 'list-item-exit' : ''}`}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="flex items-center gap-1 text-sm font-extrabold"><Flag className="h-4 w-4 text-gold-deep" aria-hidden /> {(m.payload as { title: string }).title}</p>
@@ -495,7 +501,7 @@ function Milestones({ childId }: { childId: EntityId }) {
                       <Pencil className="h-4 w-4" aria-hidden />
                     </button>
                     <button
-                      onClick={() => m.id && void deleteEvent(m.id)}
+                      onClick={() => m.id && requestDelete(m.id)}
                       className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
                       aria-label={`Delete milestone ${(m.payload as { title: string }).title}`}
                     >

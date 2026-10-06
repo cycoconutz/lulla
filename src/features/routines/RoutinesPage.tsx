@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
+import { useExitTransition } from '../../hooks/useExitTransition'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import type { EntityId } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
@@ -28,6 +29,7 @@ function Routines({ childId }: { childId: EntityId }) {
   const [custom, setCustom] = useState('')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<EventRecord | null>(null)
+  const { isExiting, requestDelete } = useExitTransition<EntityId>((id) => void deleteEvent(id))
   const eventsToday = useLiveQuery(() => eventsOnDay(childId), [childId], [])
   const routines = useLiveQuery(() => db.events.where('type').equals('routine').and(() => true).toArray(), [])
 
@@ -94,7 +96,10 @@ function Routines({ childId }: { childId: EntityId }) {
             {[...todayRoutines]
               .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
               .map((e) => (
-                <li key={e.id} className="flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold">
+                <li
+                  key={e.id}
+                  className={`flex items-center justify-between rounded-xl bg-sand px-3 py-2 text-sm font-bold ${e.id && isExiting(e.id) ? 'list-item-exit' : ''}`}
+                >
                   <span>{(e.payload as { name: string }).name}</span>
                   <span className="flex items-center gap-1.5">
                     <span className="text-muted">{formatTime(e.startedAt)}</span>
@@ -106,7 +111,7 @@ function Routines({ childId }: { childId: EntityId }) {
                       <Pencil className="h-4 w-4" aria-hidden />
                     </button>
                     <button
-                      onClick={() => e.id && void deleteEvent(e.id)}
+                      onClick={() => e.id && requestDelete(e.id)}
                       className="rounded-lg p-1 text-muted hover:bg-rose/10 hover:text-rose-deep"
                       aria-label={`Delete ${(e.payload as { name: string }).name} at ${formatTime(e.startedAt)}`}
                     >

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
 import { useVolumeUnit } from '../../hooks/useUnits'
+import { useExitTransition } from '../../hooks/useExitTransition'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import type { EntityId, EventRecord, FeedingPayload } from '../../domain/types'
 import { nowIso, formatTime } from '../../domain/time'
@@ -416,6 +417,7 @@ function FeedList({
   onDelete: (id: EntityId) => void
   onEdit: (e: EventRecord) => void
 }) {
+  const { isExiting, requestDelete } = useExitTransition(onDelete)
   if (events.length === 0) {
     return <p className="text-sm text-muted">Nothing logged yet today.</p>
   }
@@ -423,7 +425,10 @@ function FeedList({
   return (
     <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
       {byTime.map((e) => (
-        <li key={e.id} className="card flex items-center justify-between !py-2.5">
+        <li
+          key={e.id}
+          className={`card flex items-center justify-between !py-2.5 ${e.id && isExiting(e.id) ? 'list-item-exit' : ''}`}
+        >
           <div>
             <p className="text-sm font-extrabold">{feedTitle(e.payload as FeedingPayload)}</p>
             <p className="text-xs text-muted">
@@ -440,7 +445,7 @@ function FeedList({
               <Pencil className="h-4 w-4" aria-hidden />
             </button>
             <button
-              onClick={() => e.id && onDelete(e.id)}
+              onClick={() => e.id && requestDelete(e.id)}
               className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep"
               aria-label={`Delete ${feedTitle(e.payload as FeedingPayload)} at ${formatTime(e.startedAt)}`}
             >

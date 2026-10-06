@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.42",
+    "date": "2026-10-05",
+    "title": "vibrate reminders, disable quiet hours, and enter baby weight in lb and oz",
+    "sha": "bedb14859570a52bf9064ad7ec1140a97f40d895"
+  },
+  {
     "version": "0.1.41",
     "date": "2026-10-05",
     "title": "follow unit settings everywhere and log optional nursing volume",

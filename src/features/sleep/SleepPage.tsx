@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useSelectedChild } from '../../hooks/useChildren'
+import { useExitTransition } from '../../hooks/useExitTransition'
 import { useNow } from '../../hooks/useNow'
 import { eventsOnDay, recordEvent, deleteEvent } from '../../domain/repositories'
 import { tryMergeManualSleep } from '../../domain/sleep'
@@ -191,6 +192,7 @@ function SleepList({
   onDelete: (id: EntityId) => void
   onEdit: (e: EventRecord) => void
 }) {
+  const { isExiting, requestDelete } = useExitTransition(onDelete)
   if (events.length === 0) return <p className="text-sm text-muted">No completed sleep yet today.</p>
   const byTime = [...events].sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   const totalMin = events.reduce(
@@ -204,9 +206,12 @@ function SleepList({
       </p>
       <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
         {byTime.map((e) => (
-          <li key={e.id} className="card flex items-center justify-between !py-2.5">
-            <div>
-              <p className="flex items-center gap-1.5 text-sm font-extrabold">
+<li
+          key={e.id}
+          className={`card flex items-center justify-between !py-2.5 ${e.id && isExiting(e.id) ? 'list-item-exit' : ''}`}
+        >
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-extrabold">
                 {(e.payload as { kind: string }).kind === 'night'
                   ? <><Moon className="h-4 w-4 text-gold-deep" aria-hidden /> Night</>
                   : <><CloudMoon className="h-4 w-4 text-gold-deep" aria-hidden /> Nap</>}
@@ -223,7 +228,7 @@ function SleepList({
               >
                 <Pencil className="h-4 w-4" aria-hidden />
               </button>
-              <button onClick={() => e.id && onDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label={`Delete ${(e.payload as { kind: string }).kind} at ${formatTime(e.startedAt)}`}>
+              <button onClick={() => e.id && requestDelete(e.id)} className="rounded-xl p-2 text-muted hover:bg-rose/10 hover:text-rose-deep" aria-label={`Delete ${(e.payload as { kind: string }).kind} at ${formatTime(e.startedAt)}`}>
                 <Trash2 className="h-4 w-4" aria-hidden />
               </button>
             </span>
