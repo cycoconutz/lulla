@@ -13,7 +13,7 @@ import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
 import { useApplyTheme } from '../hooks/useTheme'
 import { openSyncEvents } from '../sync/live'
-import { Sun, Milk, Moon, Baby, Flag, Repeat, BarChart3, Heart, Coffee, Settings, type LucideIcon } from 'lucide-react'
+import { Sun, Milk, Moon, Baby, Flag, Repeat, BarChart3, Heart, Info, Coffee, Settings, type LucideIcon } from 'lucide-react'
 
 const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/', label: 'Today', Icon: Sun },
@@ -205,15 +205,26 @@ export function AppLayoutPage() {
               {item.label}
             </NavLink>
           ))}
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold transition ${
+                isActive ? 'bg-gold/15 text-gold-deep' : 'text-muted hover:bg-sand'
+              }`
+            }
+          >
+            <Settings className="h-6 w-6" aria-hidden />
+            Settings
+          </NavLink>
           <a
-            href="https://buymeacoffee.com/cycoconutz"
+            href="https://lulla.dev/landing"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Buy me a coffee"
+            aria-label="About Lulla"
             className="flex flex-col items-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold text-muted transition hover:bg-sand"
           >
-            <Coffee className="h-6 w-6" aria-hidden />
-            Coffee
+            <Info className="h-6 w-6" aria-hidden />
+            About
           </a>
         </div>
       </nav>
