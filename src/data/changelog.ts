@@ -8,6 +8,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.47",
+    "date": "2026-10-07",
+    "title": "improve push permission handling on Android and harden cron dispatch",
+    "sha": "e0133fd66de46299e2da1dc67f85ef6fb53f2421"
+  },
+  {
     "version": "0.1.46",
     "date": "2026-10-06",
     "title": "noise machine with 10 synthesized sounds, fade, sleep-timer integration",
@@ -26,16 +32,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     "sha": "2126c8b6e19672ab0b8ff1d5af39321c26fc8170"
   },
   {
-    "version": "0.1.44",
-    "date": "2026-10-07",
-    "title": "improve push permission handling for Android and harden cron dispatch",
-    "sha": ""
-  },
-  {
-    "version": "0.1.43",
+    "version": "0.1.42",
     "date": "2026-10-05",
-    "title": "improve reminder sheet and nav spacing, and refine the lulla.devdog-deployment",
-    "sha": "f1cbe923757ee128ba1b61c83769c6d204e01c9c"
+    "title": "vibrate reminders, disable quiet hours, and enter baby weight in lb and oz",
+    "sha": "bedb14859570a52bf9064ad7ec1140a97f40d895"
   },
   {
     "version": "0.1.41",
