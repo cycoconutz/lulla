@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import type { EntityId, EventRecord, EventPayload, SleepPayload } from '../domain/types'
-import { eventsForChild, recordEvent, updateEvent } from '../domain/repositories'
+import { eventsForChild, getSettings, recordEvent, saveSettings, updateEvent } from '../domain/repositories'
 import { findReopenCandidate, reopenSleep } from '../domain/sleep'
+import { isNoisePlaying, stopNoise } from '../domain/noise'
 import { nowIso } from '../domain/time'
 
 interface UIState {
@@ -43,6 +44,8 @@ export const useUIStore = create<UIState>((set, get) => ({
       set({
         activeTimers: get().activeTimers.filter((t) => t.id !== updated.id),
       })
+      // Wake up means the noise machine should fall quiet too.
+      if (e.type === 'sleep') void quietNoiseOnSleepEnd()
     }
   },
   /**
@@ -107,6 +110,23 @@ export const useUIStore = create<UIState>((set, get) => ({
 }))
 
 const pendingStarts = new Map<string, Promise<EntityId>>()
+
+/**
+ * Fades the noise machine out and flips the enabled checkbox off when a sleep
+ * timer ends. Never rejects: the callers fire-and-forget this.
+ */
+async function quietNoiseOnSleepEnd(): Promise<void> {
+  if (!isNoisePlaying()) return
+  stopNoise(2)
+  try {
+    const settings = await getSettings()
+    if (settings.noise?.enabled) {
+      await saveSettings({ ...settings, noise: { ...settings.noise, enabled: false } })
+    }
+  } catch {
+    // sync of the off state is best-effort
+  }
+}
 
 /**
  * Identifies starts that must not produce a second record. Only feeding needs

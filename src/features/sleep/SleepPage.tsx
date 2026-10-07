@@ -14,6 +14,7 @@ import { Segmented } from '../../components/ui/Segmented'
 import { Sheet } from '../../components/ui/Sheet'
 import { DateTimeField } from '../../components/ui/DateTimeField'
 import { EditEntrySheet } from '../shared/EditEntrySheet'
+import { NoiseMachine } from './NoiseMachine'
 import { CloudMoon, Moon, Pencil, Square, Trash2 } from 'lucide-react'
 
 export function SleepPage() {
@@ -112,6 +113,8 @@ export function SleepPage() {
           Log sleep with times
         </button>
       </div>
+
+      <NoiseMachine />
 
       <Sheet open={manualOpen} onClose={() => setManualOpen(false)} title="Log sleep">
         <ManualSleep childId={selected.id!} defaultKind={kind} onClose={() => setManualOpen(false)} />

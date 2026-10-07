@@ -1,4 +1,5 @@
 import { db } from '../db/schema'
+import { defaultNoiseSettings, normalizeNoiseSettings } from './noise'
 import type {
   Child,
   EntityId,
@@ -214,7 +215,7 @@ export function normalizeReminderRules(rules: unknown): ReminderRule[] {
 
 /** Pure: bring a stored settings row up to the current reminder shape. */
 export function normalizeSettings(row: Settings): Settings {
-  return { ...row, reminders: normalizeReminderRules(row.reminders) }
+  return { ...row, reminders: normalizeReminderRules(row.reminders), noise: normalizeNoiseSettings(row.noise) }
 }
 
 export function defaultSettings(): Settings {
@@ -238,6 +239,7 @@ export function defaultSettings(): Settings {
       { ageMonths: 12, windowMinutes: 240 },
     ],
     quietHours: null,
+    noise: defaultNoiseSettings(),
   }
 }
 

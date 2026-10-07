@@ -1,3 +1,5 @@
+import type { NoiseSettings } from './noise'
+
 /**
  * Primary key for a stored record. Legacy rows created before the uuid
  * migration have numeric auto-increment ids; records created after have
@@ -205,6 +207,7 @@ export interface Settings {
   quietHours?: QuietHours | null
   theme?: Theme
   sync?: SyncState
+  noise?: NoiseSettings
 }
 
 /**
