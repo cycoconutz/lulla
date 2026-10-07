@@ -75,15 +75,23 @@ export async function adoptForSync(): Promise<void> {
     for (const raw of rows) {
       const row = asRow(raw)
       const next: AnyRow = { ...row, updatedAt: row.updatedAt ?? nowIso() }
+      let remapped = false
       if (remapChild && typeof next.childId === 'number') {
         next.childId = childMap.get(next.childId) ?? next.childId
+        remapped = true
       }
       if (typeof row.id === 'number') {
         const nu = newId()
         rekeyed = true
         await table.put({ ...next, id: nu })
         await table.delete(row.id)
-      } else if (!row.updatedAt) {
+      } else if (!row.updatedAt || remapped) {
+        // A remapped childId has to be persisted on its own account: rows
+        // created by `recordEvent` already carry a uuid id and an updatedAt,
+        // so neither of the other two conditions would ever write them back.
+        // Skipping here leaves the events pointing at the child's old numeric
+        // id, which the compound index never matches (history reads empty) and
+        // the server drops as an invalid childId (the other parent never sees it).
         await table.put(next)
       }
     }
