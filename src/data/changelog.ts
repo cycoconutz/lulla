@@ -8,16 +8,34 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.46",
+    "date": "2026-10-06",
+    "title": "noise machine with 10 synthesized sounds, fade, sleep-timer integration",
+    "sha": "b0144184067f24e3e95316d4dec0d67a7d1462b5"
+  },
+  {
+    "version": "0.1.45",
+    "date": "2026-10-06",
+    "title": "add settings and about links to the bottom nav, drop the coffee button",
+    "sha": "a0d447bc80e412157a1b9b85b6c2ac03e9beac0c"
+  },
+  {
     "version": "0.1.43",
     "date": "2026-10-05",
     "title": "slide and fade deleted list rows out instead of vanishing",
     "sha": "2126c8b6e19672ab0b8ff1d5af39321c26fc8170"
   },
   {
-    "version": "0.1.42",
+    "version": "0.1.44",
+    "date": "2026-10-07",
+    "title": "improve push permission handling for Android and harden cron dispatch",
+    "sha": ""
+  },
+  {
+    "version": "0.1.43",
     "date": "2026-10-05",
-    "title": "vibrate reminders, disable quiet hours, and enter baby weight in lb and oz",
-    "sha": "bedb14859570a52bf9064ad7ec1140a97f40d895"
+    "title": "improve reminder sheet and nav spacing, and refine the lulla.devdog-deployment",
+    "sha": "f1cbe923757ee128ba1b61c83769c6d204e01c9c"
   },
   {
     "version": "0.1.41",

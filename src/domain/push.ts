@@ -163,7 +163,15 @@ export async function enablePush(): Promise<{ ok: boolean; reason?: string }> {
   try {
     if (!isPushSupported()) return { ok: false, reason: 'unsupported' }
     const cred = getPushCred() ?? (await registerDevice())
-    if (!cred) return { ok: false, reason: 'permission' }
+    if (!cred) {
+      // If permission is 'granted' but we still failed to register (e.g. subscription
+      // missing), try to register again once more without re-requesting permission.
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const retry = await registerDevice()
+        if (retry) return { ok: true }
+      }
+      return { ok: false, reason: 'permission' }
+    }
     return { ok: true }
   } catch (err) {
     return { ok: false, reason: err instanceof Error ? err.message : 'failed' }

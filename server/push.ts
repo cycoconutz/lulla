@@ -115,7 +115,12 @@ app.post("/unregister", async (c) => {
 });
 
 app.post("/dispatch", async (c) => {
-  const parsed = await parseTriggerInvocation(c.req);
+  let parsed: Awaited<ReturnType<typeof parseTriggerInvocation>>;
+  try {
+    parsed = await parseTriggerInvocation(c.req.raw as unknown as Request);
+  } catch {
+    parsed = await parseTriggerInvocation(c.req as unknown as Request);
+  }
   if (!parsed.ok) {
     return c.json({ error: parsed.error }, parsed.error === "invalid_body" ? 400 : 401);
   }

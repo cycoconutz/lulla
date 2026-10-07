@@ -13,8 +13,24 @@ export async function requestNotificationPermission(): Promise<boolean> {
   if (!('Notification' in window)) return false
   if (Notification.permission === 'granted') return true
   if (Notification.permission === 'denied') return false
-  const result = await Notification.requestPermission()
-  return result === 'granted'
+  try {
+    const result = await Notification.requestPermission()
+    if (result === 'granted') return true
+    if (result === 'default') {
+      // Chrome 155+ on Android can return 'default' if the non-blocking prompt times
+      // out; poll the permission state briefly in case it becomes granted later.
+      for (let i = 0; i < 10; i++) {
+        await new Promise((r) => window.setTimeout(r, 250))
+        const p = Notification.permission as NotificationPermission
+        if (p === 'granted') return true
+        if (p === 'denied') return false
+      }
+      return (Notification.permission as NotificationPermission) === 'granted'
+    }
+    return (Notification.permission as NotificationPermission) === 'granted'
+  } catch {
+    return false
+  }
 }
 
 export function notify(title: string, body: string): void {
