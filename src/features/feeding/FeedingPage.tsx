@@ -408,6 +408,22 @@ function PumpLog({ childId, activeSide, onStop, live, defaultAt }: { childId: En
             ]}
           />
           <Stepper value={amount} onChange={setAmount} step={bounds.step} min={0} max={bounds.max} suffix={volume} />
+          {volume === 'ml' && (
+            <div className="grid grid-cols-4 gap-2">
+              {[-5, -1, 1, 5].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() =>
+                    setAmount((a) => Math.min(bounds.max, Math.max(0, Math.round((a + d) * 100) / 100)))
+                  }
+                  className="btn-outline !py-2 text-sm"
+                >
+                  {d > 0 ? `+${d}` : d} ml
+                </button>
+              ))}
+            </div>
+          )}
           <label className="block text-xs font-bold text-muted">Time</label>
           <DateTimeField value={at} onChange={setAt} />
           <button onClick={save} className="btn-gold w-full !py-4">
