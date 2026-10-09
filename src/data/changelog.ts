@@ -8,6 +8,30 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    "version": "0.1.53",
+    "date": "2026-10-08",
+    "title": "add quick ml adjust buttons to pump log",
+    "sha": "3f177e724fd9855b058838c0a83cc465d3b5e0ce"
+  },
+  {
+    "version": "0.1.52",
+    "date": "2026-10-07",
+    "title": "add quick ml adjust buttons to bottle log",
+    "sha": "9bc3e784f5bf6d76df0d57ba2db1fb3cea1e5911"
+  },
+  {
+    "version": "0.1.50",
+    "date": "2026-10-07",
+    "title": "add sign-in/create-account join card to onboarding",
+    "sha": "5d61264ce62bbfd6d787fa7d7e8804da0e84d315"
+  },
+  {
+    "version": "0.1.48",
+    "date": "2026-10-07",
+    "title": "remap event childIds when adopting ids",
+    "sha": "ac7e88e706729c49ab037d6a125efb4a27d75f2f"
+  },
+  {
     "version": "0.1.47",
     "date": "2026-10-07",
     "title": "improve push permission handling on Android and harden cron dispatch",

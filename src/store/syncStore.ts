@@ -200,10 +200,11 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     }
     const res = await runSync(token)
     const cur = await getSettings()
+    const expired = res.status === 401 || (res.ok === false && /unauthorized/i.test(res.error ?? ''))
     set({
       syncing: false,
       lastSyncAt: cur.sync?.lastSyncAt ?? (res.ok ? new Date().toISOString() : null),
-      error: res.error ?? cur.sync?.error ?? null,
+      error: expired ? 'Session expired — please sign in again.' : (res.error ?? cur.sync?.error ?? null),
     })
     return res.ok
   },

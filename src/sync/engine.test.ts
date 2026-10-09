@@ -185,6 +185,39 @@ describe('pushLocalState', () => {
     await pushLocalState('tok', (await getSettings()).sync as SyncState)
     expect(firstCall).not.toHaveBeenCalled()
   })
+
+  it('keeps deletes queued while a push was in flight', async () => {
+    const { getSettings } = await import('../domain/repositories')
+    const start = await getSettings()
+    await saveSettings({
+      ...start,
+      sync: { ...(start.sync as SyncState), pendingDeletes: [{ id: 'del-a', updatedAt: nowIso() }] },
+    })
+
+    const api = await import('./api')
+    vi.mocked(api.pushRecords).mockImplementationOnce(async (_t, _r, dels) => {
+      // Another delete lands while the network call is open.
+      const cur = await getSettings()
+      await saveSettings({
+        ...cur,
+        sync: {
+          ...(cur.sync as SyncState),
+          pendingDeletes: [...(cur.sync?.pendingDeletes ?? []), { id: 'del-mid', updatedAt: nowIso() }],
+        },
+      })
+      return { recordsApplied: 0, deletesApplied: dels.length }
+    })
+
+    const s = await getSettings()
+    await pushLocalState('tok', s.sync as SyncState)
+
+    // Regression: the save used to write pendingDeletes: [], silently dropping
+    // del-mid, whose row then stayed alive on the server forever.
+    const ids = ((await getSettings()).sync?.pendingDeletes ?? []).map((d) => d.id)
+    expect(ids).toContain('del-mid')
+    expect(ids).not.toContain('del-a')
+    expect(vi.mocked(api.pushRecords).mock.calls[0][2].map((d) => d.id)).toContain('del-a')
+  })
 })
 
 describe('runSync', () => {
@@ -237,6 +270,43 @@ describe('runSync', () => {
 
     await runSync('tok')
     expect(await db.children.count()).toBe(0)
+  })
+
+  it('drops pulled orphans whose child is gone, and tombstones them server-side', async () => {
+    // The orphaned-history incident: the child tombstone and the history rows
+    // that reference it arrive in the same batch.
+    h.rows.set('gone-child', { data: null, deleted: true, kind: 'children', rev: 1 })
+    h.rows.set('evt-1', {
+      data: {
+        id: 'evt-1',
+        childId: 'gone-child',
+        type: 'feeding',
+        startedAt: '2026-01-02T10:00:00.000Z',
+        updatedAt: '2026-01-02T10:00:00.000Z',
+      },
+      deleted: false,
+      kind: 'events',
+      rev: 2,
+    })
+    h.rows.set('msr-1', {
+      data: { id: 'msr-1', childId: 'gone-child', kind: 'height', updatedAt: '2026-01-02T10:00:00.000Z' },
+      deleted: false,
+      kind: 'measurements',
+      rev: 3,
+    })
+
+    await runSync('tok')
+
+    expect(await db.children.count()).toBe(0)
+    expect(await db.events.count()).toBe(0)
+    expect(await db.measurements.count()).toBe(0)
+    // Tombstoned in the same cycle's push, so the server rows die too instead
+    // of re-syncing back on the next pull.
+    expect(h.rows.get('evt-1')?.deleted).toBe(true)
+    expect(h.rows.get('msr-1')?.deleted).toBe(true)
+    // ...and nothing is left queued for a later push.
+    const s = await (await import('../domain/repositories')).getSettings()
+    expect(s.sync?.pendingDeletes ?? []).toHaveLength(0)
   })
 })
 

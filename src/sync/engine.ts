@@ -1,9 +1,9 @@
 import { db } from '../db/schema'
-import { getSettings, saveSettings } from '../domain/repositories'
+import { getSettings, saveSettings, recordDeleteTombstone } from '../domain/repositories'
 import { newId, nowIso } from '../domain/time'
 import type { EntityId, SyncState } from '../domain/types'
 import { SYNC_KINDS, type SyncChange, type SyncKind, type SyncRecordWire } from '../domain/syncConfig'
-import { pushRecords, pullChanges } from './api'
+import { pushRecords, pullChanges, SyncApiError } from './api'
 import type { Table } from 'dexie'
 
 type AnyRow = Record<string, unknown> & { id?: EntityId; updatedAt?: string; childId?: EntityId }
@@ -143,7 +143,10 @@ export async function pushLocalState(token: string, sync: SyncState): Promise<vo
   for (const key of Object.keys(snapshot)) {
     if (!seen.has(key)) delete snapshot[key]
   }
-  const deletes: SyncRecordWire[] = (sync.pendingDeletes ?? []).map((d) => ({
+  // Read pending deletes from storage rather than the passed state: reconciliation
+  // may have queued more since the caller snapshotted it.
+  const queued = (await getSettings()).sync?.pendingDeletes ?? sync.pendingDeletes ?? []
+  const deletes: SyncRecordWire[] = queued.map((d) => ({
     id: d.id,
     kind: 'unknown' as SyncKind,
     childId: null,
@@ -154,11 +157,19 @@ export async function pushLocalState(token: string, sync: SyncState): Promise<vo
     await pushRecords(token, records, deletes)
   }
 
-  // Pushed deletes now live on the server as tombstones; snapshot is current.
-  const settings = await getSettings()
-  await saveSettings({
-    ...settings,
-    sync: { ...settings.sync!, pendingDeletes: [], snapshot },
+  // Remove only the ids this call actually sent. A delete queued while the
+  // network call was in flight survives for the next push; clearing the whole
+  // list dropped it silently and left the row alive on the server forever.
+  // Read-filter-write inside one settings transaction so a queue between the
+  // read and the write cannot be clobbered either.
+  const pushedIds = new Set(deletes.map((d) => d.id))
+  await db.transaction('rw', db.settings, async () => {
+    const settings = await getSettings()
+    const stillPending = (settings.sync?.pendingDeletes ?? []).filter((d) => !pushedIds.has(d.id))
+    await saveSettings({
+      ...settings,
+      sync: { ...settings.sync!, pendingDeletes: stillPending, snapshot },
+    })
   })
 }
 
@@ -240,11 +251,44 @@ export interface SyncResult {
   ok: boolean
   error?: string
   cursor?: number
+  status?: number
+}
+
+/**
+ * Post-pull orphan cleanup: drop child-scoped rows whose child no longer exists
+ * locally, and queue tombstones so the server drops them too. Orphans appear
+ * when a device deletes a child it only partially knew (the rest of the history
+ * arrives in a later pull) or when a stale device pushes records for a child the
+ * household already deleted. History reads are child-keyed, so these rows are
+ * invisible in the UI but otherwise live forever on the server and re-sync back
+ * onto every device. Runs after every pull: devices that pulled orphans before
+ * this cleanup existed are repaired on their next sync.
+ */
+export async function reconcileOrphanRecords(): Promise<number> {
+  const childIds = new Set((await db.children.toArray()).map((c) => String(c.id)))
+  let removed = 0
+  // Delete and tombstone commit together: a crash between them would leave the
+  // server row alive with no pending delete to ever remove it (fix 4's bug).
+  await db.transaction('rw', db.events, db.measurements, db.medicalRecords, db.settings, async () => {
+    for (const table of [TABLES.events, TABLES.measurements, TABLES.medical]) {
+      const rows = (await table.toArray()) as unknown as AnyRow[]
+      for (const row of rows) {
+        if (typeof row.id !== 'string') continue
+        const child = row.childId
+        if (child == null || childIds.has(String(child))) continue
+        await table.delete(row.id)
+        await recordDeleteTombstone(row.id)
+        removed++
+      }
+    }
+  })
+  return removed
 }
 
 /**
  * One complete sync: adopt (once) → pull + apply (merging duplicate children
- * locally) → push only rows that are genuinely new/changed on this device.
+ * locally and dropping rows whose child no longer exists) → push only rows that
+ * are genuinely new/changed on this device.
  * Pull runs first so a child added on this device that is really the same kid as
  * a household child is folded into the household id before anything about the
  * local dup id is pushed — no clones, no extra server rows.
@@ -269,6 +313,7 @@ export async function runSync(token: string): Promise<SyncResult> {
       if (ch.deleted || ch.data == null) delete pushSnapshot[key]
       else pushSnapshot[key] = ch.data
     }
+    await reconcileOrphanRecords()
     await pushLocalState(token, { ...sync, cursor, snapshot: pushSnapshot })
     const cur = await getSettings()
     const lastSyncAt = nowIso()
@@ -280,9 +325,10 @@ export async function runSync(token: string): Promise<SyncResult> {
     return { ok: true, cursor }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Sync failed.'
+    const status = err instanceof SyncApiError ? err.status : undefined
     const cur = await getSettings()
     await saveSettings({ ...cur, sync: { ...cur.sync!, error: message } })
-    return { ok: false, error: message }
+    return { ok: false, error: message, status }
   }
 }
 

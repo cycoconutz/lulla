@@ -267,6 +267,8 @@ app.post("/push", async (c) => {
 
   let recordsApplied = 0;
   let deletesApplied = 0;
+  let cascaded = 0;
+  const deletedIds: string[] = [];
 
   const client = await pool.connect();
   try {
@@ -324,6 +326,24 @@ app.post("/push", async (c) => {
         );
       }
       deletesApplied++;
+      deletedIds.push(d.id);
+    }
+
+    // Cascade: deleting a child also deletes its history server-side. Without
+    // this, a device that only knew the child partially (create + delete before
+    // the rest of the history was pulled) left live rows whose child_id points
+    // at a dead child; they are invisible to every child-keyed query yet sync
+    // back onto every device forever. `deletedIds` covers non-child ids too:
+    // child_id only ever references children, so anything else is a no-op.
+    if (deletedIds.length) {
+      const res = await client.query(
+        `UPDATE lulla.sync_records
+         SET data = NULL, deleted = true, rev = nextval('lulla.sync_records_rev_seq')
+         WHERE household_id = $1 AND child_id = ANY($2::text[])
+           AND kind IN ('events', 'measurements', 'medical') AND NOT deleted`,
+        [member.household_id, deletedIds],
+      );
+      cascaded = res.rowCount ?? 0;
     }
 
     await client.query("COMMIT");
@@ -334,7 +354,7 @@ app.post("/push", async (c) => {
     client.release();
   }
 
-  return c.json({ recordsApplied, deletesApplied });
+  return c.json({ recordsApplied, deletesApplied, cascaded });
 });
 
 // Pull changes newer than `after` (a server rev cursor).

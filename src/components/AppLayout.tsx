@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate, NavLink } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { listChildren } from '../domain/repositories'
@@ -137,9 +137,19 @@ export function AppLayoutPage() {
           <Coffee className="h-5 w-5" aria-hidden />
           Buy me a coffee
         </a>
+        <a
+          href="https://lulla.dev/landing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-muted transition hover:bg-sand"
+        >
+          <Info className="h-5 w-5" aria-hidden />
+          About
+        </a>
       </nav>
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
+        <SyncErrorBanner />
         <header className="sticky top-0 z-20 border-b border-sand bg-cream/90 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2">
@@ -228,6 +238,36 @@ export function AppLayoutPage() {
           </a>
         </div>
       </nav>
+    </div>
+  )
+}
+
+function SyncErrorBanner() {
+  const error = useSyncStore((s) => s.error)
+  const signOut = useSyncStore((s) => s.signOut)
+  const [dismissed, setDismissed] = useState(false)
+  if (!error || dismissed) return null
+  const expired = /session expired/i.test(error)
+  return (
+    <div className="flex items-center justify-between gap-3 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700" role="alert">
+      <span>{error}</span>
+      <div className="flex items-center gap-2">
+        {expired && (
+          <button
+            onClick={() => void signOut()}
+            className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-bold text-white transition hover:bg-rose-700"
+          >
+            Sign out
+          </button>
+        )}
+        <button
+          onClick={() => setDismissed(true)}
+          aria-label="Dismiss"
+          className="rounded-lg px-2 py-1 text-xs font-bold text-rose-600 transition hover:bg-rose-100"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   )
 }

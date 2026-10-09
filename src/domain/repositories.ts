@@ -27,7 +27,7 @@ export const deleteEvent = async (id: EntityId) => {
 }
 
 /** Keep a local tombstone for a deleted synced row so the next push deletes it server-side. */
-async function recordDeleteTombstone(id: EntityId): Promise<void> {
+export async function recordDeleteTombstone(id: EntityId): Promise<void> {
   if (typeof id !== 'string') return
   const settings = await getSettings()
   if (!settings.sync || settings.sync.status !== 'ready') return
@@ -95,21 +95,31 @@ export const updateChild = (child: Child) =>
 /** Delete a child and every record tied to it. Queues sync tombstones when family sync is on. */
 export const deleteChild = async (id: EntityId) => {
   if (typeof id !== 'string') return
-  const rows = await Promise.all([
-    db.events.where('childId').equals(id).toArray(),
-    db.measurements.where('childId').equals(id).toArray(),
-    db.medicalRecords.where('childId').equals(id).toArray(),
-  ])
-  await db.transaction('rw', db.children, db.events, db.measurements, db.medicalRecords, async () => {
-    await db.children.delete(id)
-    await db.events.where('childId').equals(id).delete()
-    await db.measurements.where('childId').equals(id).delete()
-    await db.medicalRecords.where('childId').equals(id).delete()
-  })
-  const removedIds = [id, ...rows.flatMap((r) => r.map((x) => x.id))]
-  for (const rid of removedIds) {
-    if (typeof rid === 'string') await recordDeleteTombstone(rid)
-  }
+  // Rows and tombstones commit together: a crash between them used to leave
+  // history rows with no tombstone, so the server never deleted them and every
+  // sync re-pulled an invisible, unreferenced cluster (the orphaned-history incident).
+  await db.transaction(
+    'rw',
+    db.children,
+    db.events,
+    db.measurements,
+    db.medicalRecords,
+    db.settings,
+    async () => {
+      const rows = await Promise.all([
+        db.events.where('childId').equals(id).toArray(),
+        db.measurements.where('childId').equals(id).toArray(),
+        db.medicalRecords.where('childId').equals(id).toArray(),
+      ])
+      await db.children.delete(id)
+      await db.events.where('childId').equals(id).delete()
+      await db.measurements.where('childId').equals(id).delete()
+      await db.medicalRecords.where('childId').equals(id).delete()
+      for (const rid of [id, ...rows.flatMap((r) => r.map((x) => x.id))]) {
+        if (typeof rid === 'string') await recordDeleteTombstone(rid)
+      }
+    },
+  )
 }
 
 export const getHousehold = async () => {
