@@ -63,12 +63,13 @@ export function AppLayoutPage() {
     const s = (await db.settings.toArray())[0]
     return s?.sync?.status === 'ready' && !!s.sync?.householdId
   }, [])
+  const user = useSyncStore((s) => s.user)
 
   // Auto-sync when a signed-in device is in a ready household: kick off shortly
   // after any local data revision, whenever the tab regains focus, and on a fixed
   // interval so changes made on other devices show up without user action.
   useEffect(() => {
-    if (!syncReady || !useSyncStore.getState().user) return
+    if (!syncReady || !user) return
     const syncNow = useSyncStore.getState().syncNow
     let t: number | undefined
     const schedule = () => {
@@ -80,18 +81,23 @@ export function AppLayoutPage() {
     const onVisible = () => {
       if (document.visibilityState === 'visible') schedule()
     }
-    const poll = window.setInterval(() => { void syncNow() }, 15000)
-    const offLiveSync = openSyncEvents(() => { void syncNow() })
+    const poll = window.setInterval(() => { void syncNow() }, 60000)
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       if (t) window.clearTimeout(t)
       window.clearInterval(poll)
-      offLiveSync()
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [syncReady, pushRev])
+  }, [syncReady, user, pushRev])
+
+  // The SSE stream lives in its own effect so local event pushes (pushRev) do
+  // not tear it down and reopen it on every change.
+  useEffect(() => {
+    if (!syncReady || !user) return
+    return openSyncEvents(() => { void useSyncStore.getState().syncNow() })
+  }, [syncReady, user])
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col lg:max-w-6xl lg:flex-row">

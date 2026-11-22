@@ -385,11 +385,13 @@ app.get("/pull", async (c) => {
   const cursor = changes.length > 0 ? (changes[changes.length - 1].rev as number) : after;
 
   await pool.query(
-    "UPDATE lulla.members SET last_pull_rev = GREATEST(COALESCE(last_pull_rev, 0), $2) WHERE user_id = $1",
+    "UPDATE lulla.members SET last_pull_rev = $2 WHERE user_id = $1 AND (last_pull_rev IS NULL OR last_pull_rev < $2)",
     [userId, cursor],
   );
   // Prune tombstones every member has already pulled past (strictly less than
   // every member's cursor, so never a tombstone just handed to this client).
+  // This stays unconditional: a pull with no changes cannot advance the cursor
+  // enough to prune, so gating it on changes would stall pruning forever.
   await pool.query(
     `DELETE FROM lulla.sync_records
      WHERE household_id = $1 AND deleted AND rev < (
@@ -402,7 +404,7 @@ app.get("/pull", async (c) => {
 });
 
 const ENCODER = new TextEncoder();
-const SSE_POLL_MS = 3000;
+const SSE_POLL_MS = 15000;
 
 // Long-lived SSE stream: emits `data: <rev>` whenever the household's highest
 // rev advances past the `after` cursor, plus a `: ping` comment heartbeat so
@@ -418,32 +420,54 @@ app.get("/events", async (c) => {
   const after = /^\d+$/.test(raw) ? Number(raw) : 0;
   let sentRev = after;
 
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let pollTimer: ReturnType<typeof setInterval> | undefined;
+  let pingTimer: ReturnType<typeof setInterval> | undefined;
+  let stopped = false;
+  let polling = false;
+  const cleanup = () => {
+    if (stopped) return;
+    stopped = true;
+    if (pollTimer) clearInterval(pollTimer);
+    if (pingTimer) clearInterval(pingTimer);
+  };
+  c.req.raw.signal.addEventListener("abort", cleanup, { once: true });
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const poll = async () => {
+        if (stopped || polling) return;
+        polling = true;
         try {
           const { rows } = await pool.query(
             `SELECT max(rev) AS rev FROM lulla.sync_records WHERE household_id = $1`,
             [member.household_id],
           );
           const maxRev = Number((rows[0] as { rev: string | null })?.rev ?? 0);
-          if (maxRev > sentRev) {
+          if (!stopped && maxRev > sentRev) {
             sentRev = maxRev;
-            controller.enqueue(ENCODER.encode(`data: ${maxRev}\n\n`));
-          } else {
-            controller.enqueue(ENCODER.encode(": ping\n\n"));
+            try {
+              controller.enqueue(ENCODER.encode(`data: ${maxRev}\n\n`));
+            } catch {
+              cleanup();
+            }
           }
         } catch {
-          controller.enqueue(ENCODER.encode(": ping\n\n"));
+          // Ping timer keeps the stream alive; retry on the next poll.
+        } finally {
+          polling = false;
         }
       };
       void poll();
-      timer = setInterval(poll, SSE_POLL_MS);
+      pollTimer = setInterval(poll, SSE_POLL_MS);
+      pingTimer = setInterval(() => {
+        if (stopped) return;
+        try {
+          controller.enqueue(ENCODER.encode(": ping\n\n"));
+        } catch {
+          cleanup();
+        }
+      }, SSE_POLL_MS);
     },
-    cancel() {
-      if (timer) clearInterval(timer);
-    },
+    cancel: cleanup,
   });
 
   return new Response(stream, {

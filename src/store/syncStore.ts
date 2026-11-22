@@ -9,6 +9,7 @@ interface SyncStore {
   booting: boolean
   user: SessionUser | null
   syncing: boolean
+  syncQueued: boolean
   lastSyncAt: string | null
   error: string | null
   boot: () => Promise<void>
@@ -31,6 +32,38 @@ const msg = (err: unknown): string =>
 const bootErrorText = (err: unknown): string =>
   (typeof err === 'string' ? err.trim() : '') || msg(err).trim() || 'unknown error'
 
+// Callers waiting on a queued sync need the result of the run that satisfies
+// them, not an optimistic `true` from the busy short-circuit.
+let queuedResolvers: ((ok: boolean) => void)[] = []
+let syncIdleWaiters: (() => void)[] = []
+let syncEpoch = 0
+
+const settleIdle = () => {
+  const waiters = syncIdleWaiters
+  syncIdleWaiters = []
+  for (const resolve of waiters) resolve()
+}
+
+function waitForSyncIdle(): Promise<void> {
+  if (!useSyncStore.getState().syncing) return Promise.resolve()
+  return new Promise<void>((resolve) => { syncIdleWaiters.push(resolve) })
+}
+
+const takeQueuedResolvers = () => {
+  const resolvers = queuedResolvers
+  queuedResolvers = []
+  return resolvers
+}
+
+const settle = (resolvers: ((ok: boolean) => void)[], ok: boolean) => {
+  for (const resolve of resolvers) resolve(ok)
+}
+
+const invalidateSync = () => {
+  syncEpoch += 1
+  settle(takeQueuedResolvers(), false)
+}
+
 async function patchSync(fn: (s: SyncState) => SyncState): Promise<void> {
   const settings = await getSettings()
   await saveSettings({ ...settings, sync: fn(settings.sync ?? { status: 'off' }) })
@@ -40,6 +73,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   booting: true,
   user: null,
   syncing: false,
+  syncQueued: false,
   lastSyncAt: null,
   error: null,
 
@@ -80,8 +114,12 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       return false
     }
     const user = await restoreSession()
-    set({ user, error: null })
-    if (user) await get()._adopt()
+    invalidateSync()
+    set({ user, error: null, syncQueued: false })
+    if (user) {
+      await waitForSyncIdle()
+      await get()._adopt()
+    }
     return user != null
   },
 
@@ -93,15 +131,20 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       return false
     }
     const user = await restoreSession()
-    set({ user, error: null })
-    if (user) await get()._adopt()
+    invalidateSync()
+    set({ user, error: null, syncQueued: false })
+    if (user) {
+      await waitForSyncIdle()
+      await get()._adopt()
+    }
     return user != null
   },
 
   signOut: async () => {
     await signOutSession()
     await patchSync((s) => ({ ...s, status: 'off' }))
-    set({ user: null, lastSyncAt: null })
+    invalidateSync()
+    set({ user: null, lastSyncAt: null, error: null, syncQueued: false })
   },
 
   createHousehold: async (name) => {
@@ -123,6 +166,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         inviteCode: h.inviteCode,
         cursor: 0,
         adopted: false,
+        ...(s.householdId === h.householdId ? {} : { snapshot: undefined, pendingDeletes: [] }),
         error: undefined,
         lastSyncAt: undefined,
       }))
@@ -139,6 +183,8 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     } catch (err) {
       set({ syncing: false, error: msg(err) })
       return false
+    } finally {
+      settleIdle()
     }
   },
 
@@ -162,6 +208,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         inviteCode: overview.inviteCode ?? undefined,
         cursor: 0,
         adopted: false,
+        ...(s.householdId === overview.householdId ? {} : { snapshot: undefined, pendingDeletes: [] }),
         error: undefined,
         lastSyncAt: undefined,
       }))
@@ -171,6 +218,8 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     } catch (err) {
       set({ syncing: false, error: msg(err) })
       return false
+    } finally {
+      settleIdle()
     }
   },
 
@@ -200,6 +249,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
         inviteCode: overview.inviteCode ?? undefined,
         cursor: 0,
         adopted: true,
+        ...(s.householdId === overview.householdId ? {} : { snapshot: undefined, pendingDeletes: [] }),
         error: undefined,
       }))
       if (overview.householdId) await runSync(token)
@@ -210,22 +260,45 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   syncNow: async () => {
-    if (get().syncing) return true
-    set({ syncing: true, error: null })
-    const token = await sessionToken()
-    if (!token) {
-      set({ syncing: false, error: 'Not signed in.' })
-      return false
+    if (get().syncing) {
+      set({ syncQueued: true })
+      return new Promise<boolean>((resolve) => { queuedResolvers.push(resolve) })
     }
-    const res = await runSync(token)
-    const cur = await getSettings()
-    const expired = res.status === 401 || (res.ok === false && /unauthorized/i.test(res.error ?? ''))
-    set({
-      syncing: false,
-      lastSyncAt: cur.sync?.lastSyncAt ?? (res.ok ? new Date().toISOString() : null),
-      error: expired ? 'Session expired — please sign in again.' : (res.error ?? cur.sync?.error ?? null),
-    })
-    return res.ok
+    const epoch = syncEpoch
+    set({ syncing: true, error: null })
+    try {
+      const token = await sessionToken()
+      if (!token) {
+        if (epoch === syncEpoch) set({ error: 'Not signed in.' })
+        return false
+      }
+      const res = await runSync(token)
+      const cur = await getSettings()
+      const expired = res.status === 401 || (res.ok === false && /unauthorized/i.test(res.error ?? ''))
+      if (epoch === syncEpoch) {
+        set({
+          lastSyncAt: cur.sync?.lastSyncAt ?? (res.ok ? new Date().toISOString() : null),
+          error: expired ? 'Session expired — please sign in again.' : (res.error ?? cur.sync?.error ?? null),
+        })
+      }
+      return res.ok
+    } catch (err) {
+      if (epoch === syncEpoch) set({ error: msg(err) })
+      return false
+    } finally {
+      set({ syncing: false })
+      let resumed = false
+      if (epoch === syncEpoch && get().syncQueued) {
+        resumed = true
+        set({ syncQueued: false })
+        const resolvers = takeQueuedResolvers()
+        void get().syncNow().then((ok) => settle(resolvers, epoch === syncEpoch ? ok : false))
+      } else if (get().syncQueued) {
+        set({ syncQueued: false })
+        settle(takeQueuedResolvers(), false)
+      }
+      if (!resumed) settleIdle()
+    }
   },
 
   leaveHousehold: async () => {
