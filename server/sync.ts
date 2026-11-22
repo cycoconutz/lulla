@@ -405,6 +405,13 @@ app.get("/pull", async (c) => {
 
 const ENCODER = new TextEncoder();
 const SSE_POLL_MS = 15000;
+// Best-effort per-isolate admission controls. Neon Functions run across
+// multiple isolates, so these bound a single instance, not the whole service.
+const MAX_SSE_PER_USER = 2;
+const MAX_SSE_GLOBAL = 200;
+const SSE_TTL_MS = 10 * 60 * 1000;
+const sseStreamsByUser = new Map<string, Set<() => void>>();
+let sseGlobalCount = 0;
 
 // Long-lived SSE stream: emits `data: <rev>` whenever the household's highest
 // rev advances past the `after` cursor, plus a `: ping` comment heartbeat so
@@ -416,23 +423,54 @@ app.get("/events", async (c) => {
   const member = await memberFor(userId);
   if (!member) return c.json({ error: "not a member" }, 403);
 
+  const userStreams = sseStreamsByUser.get(userId) ?? new Set<() => void>();
+  if (userStreams.size >= MAX_SSE_PER_USER || sseGlobalCount >= MAX_SSE_GLOBAL) {
+    return c.json({ error: "too many live connections" }, 429);
+  }
+
   const raw = c.req.query("after") ?? "0";
   const after = /^\d+$/.test(raw) ? Number(raw) : 0;
   let sentRev = after;
 
+  let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+  let admitted = false;
   let pollTimer: ReturnType<typeof setInterval> | undefined;
   let pingTimer: ReturnType<typeof setInterval> | undefined;
+  let ttlTimer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let polling = false;
+  const release = () => {
+    if (!admitted) return;
+    admitted = false;
+    userStreams.delete(release);
+    if (userStreams.size === 0) sseStreamsByUser.delete(userId);
+    sseGlobalCount = Math.max(0, sseGlobalCount - 1);
+  };
   const cleanup = () => {
     if (stopped) return;
     stopped = true;
+    c.req.raw.signal.removeEventListener("abort", onAbort);
     if (pollTimer) clearInterval(pollTimer);
     if (pingTimer) clearInterval(pingTimer);
+    if (ttlTimer) clearTimeout(ttlTimer);
+    release();
+    if (controller) {
+      try {
+        controller.close();
+      } catch {
+        // already closed
+      }
+    }
   };
-  c.req.raw.signal.addEventListener("abort", cleanup, { once: true });
+  const onAbort = () => cleanup();
+  c.req.raw.signal.addEventListener("abort", onAbort, { once: true });
   const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
+    async start(ctrl) {
+      controller = ctrl;
+      userStreams.add(release);
+      sseStreamsByUser.set(userId, userStreams);
+      sseGlobalCount++;
+      admitted = true;
       const poll = async () => {
         if (stopped || polling) return;
         polling = true;
@@ -466,6 +504,15 @@ app.get("/events", async (c) => {
           cleanup();
         }
       }, SSE_POLL_MS);
+      ttlTimer = setTimeout(() => {
+        if (stopped) return;
+        try {
+          controller.enqueue(ENCODER.encode("event: close\ndata: ttl\n\n"));
+        } catch {
+          // stream already gone; cleanup still releases the slot
+        }
+        cleanup();
+      }, SSE_TTL_MS);
     },
     cancel: cleanup,
   });
