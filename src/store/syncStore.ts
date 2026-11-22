@@ -28,6 +28,9 @@ interface SyncStore {
 const msg = (err: unknown): string =>
   err instanceof SyncApiError ? err.message : err instanceof Error ? err.message : 'Something went wrong.'
 
+const bootErrorText = (err: unknown): string =>
+  (typeof err === 'string' ? err.trim() : '') || msg(err).trim() || 'unknown error'
+
 async function patchSync(fn: (s: SyncState) => SyncState): Promise<void> {
   const settings = await getSettings()
   await saveSettings({ ...settings, sync: fn(settings.sync ?? { status: 'off' }) })
@@ -41,16 +44,32 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   error: null,
 
   boot: async () => {
-    const user = await restoreSession()
-    const settings = await getSettings()
+    let user: SessionUser | null = null
+    let settings: Awaited<ReturnType<typeof getSettings>> | undefined
+    let settingsLoaded = false
+    const failures: string[] = []
+    try {
+      user = await restoreSession()
+    } catch (err) {
+      failures.push(`Could not check your session: ${bootErrorText(err)}`)
+    }
+    try {
+      settings = await getSettings()
+      settingsLoaded = true
+    } catch (err) {
+      failures.push(`Could not read local settings: ${bootErrorText(err)}`)
+    }
+    const bootError = failures.length ? failures.join(' ') : null
     set({
       booting: false,
       user,
-      lastSyncAt: settings.sync?.lastSyncAt ?? null,
-      error: settings.sync?.error ?? null,
+      lastSyncAt: settings?.sync?.lastSyncAt ?? null,
+      error: bootError ?? settings?.sync?.error ?? null,
       syncing: false,
     })
-    if (user && settings.sync?.status !== 'ready') await get()._adopt()
+    // A failed settings read is not evidence that this device has no household.
+    // Adopting here would reset the cursor against unknown state.
+    if (user && settingsLoaded && settings?.sync?.status !== 'ready') await get()._adopt()
   },
 
   signUp: async (email, password, name) => {
