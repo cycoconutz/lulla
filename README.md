@@ -48,4 +48,4 @@ npm run build      # production build (typecheck + vite build)
 
 ## License
 
-Private project.
+MIT. See [LICENSE](LICENSE).
