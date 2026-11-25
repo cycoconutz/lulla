@@ -4,14 +4,10 @@ import type {
   DiaperPayload,
   EventRecord,
   FeedingPayload,
-  MedicalRecord,
-  Measurement,
-  MedicationPayload,
   MemoryPayload,
   MilestonePayload,
   RoutinePayload,
   SleepPayload,
-  VaccinePayload,
 } from '../domain/types'
 
 const BASE = {
@@ -49,17 +45,16 @@ const emittedType = (csv: string, type: string) => parse(csv).filter((r) => r[1]
 
 describe('toCsv', () => {
   it('puts every logged diaper field in its own column', () => {
-    const payload: DiaperPayload = { status: 'mixed', consistency: 'seedy', rash: true }
-    const csv = toCsv({ events: [ev({ type: 'diaper', payload, startedAt: '2026-03-01T10:00:00.000Z' })], measurements: [], medicalRecords: [] })
+    const payload: DiaperPayload = { status: 'mixed', consistency: 'seedy' }
+    const csv = toCsv({ events: [ev({ type: 'diaper', payload, startedAt: '2026-03-01T10:00:00.000Z' })] })
     const row = emittedType(csv, 'diaper')[0]
     expect(row[CSV_HEADERS.indexOf('status')]).toBe('mixed')
     expect(row[CSV_HEADERS.indexOf('consistency')]).toBe('seedy')
-    expect(row[CSV_HEADERS.indexOf('rash')]).toBe('true')
   })
 
   it('expands feeding payloads into their columns', () => {
     const payload: FeedingPayload = { kind: 'bottle', milk: 'formula', amount: 4, unit: 'oz' }
-    const csv = toCsv({ events: [ev({ type: 'feeding', payload, startedAt: '2026-03-01T10:00:00.000Z' })], measurements: [], medicalRecords: [] })
+    const csv = toCsv({ events: [ev({ type: 'feeding', payload, startedAt: '2026-03-01T10:00:00.000Z' })] })
     const row = emittedType(csv, 'feeding')[0]
     expect(row[CSV_HEADERS.indexOf('kind')]).toBe('bottle')
     expect(row[CSV_HEADERS.indexOf('amount')]).toBe('4')
@@ -67,7 +62,7 @@ describe('toCsv', () => {
     expect(row[CSV_HEADERS.indexOf('milk')]).toBe('formula')
 
     const solids: FeedingPayload = { kind: 'solids', foods: ['oatmeal', 'pear'] }
-    const csv2 = toCsv({ events: [ev({ type: 'feeding', payload: solids, startedAt: '2026-03-01T10:00:00.000Z' })], measurements: [], medicalRecords: [] })
+    const csv2 = toCsv({ events: [ev({ type: 'feeding', payload: solids, startedAt: '2026-03-01T10:00:00.000Z' })] })
     expect(emittedType(csv2, 'feeding')[0][CSV_HEADERS.indexOf('foods')]).toBe('oatmeal, pear')
   })
 
@@ -75,31 +70,11 @@ describe('toCsv', () => {
     const payload: SleepPayload = { kind: 'night', endedExplicit: true }
     const csv = toCsv({
       events: [ev({ type: 'sleep', payload, startedAt: '2026-03-01T21:00:00.000Z', endedAt: '2026-03-02T06:00:00.000Z' })],
-      measurements: [],
-      medicalRecords: [],
     })
     const row = emittedType(csv, 'sleep')[0]
     expect(row[CSV_HEADERS.indexOf('kind')]).toBe('night')
     expect(row[CSV_HEADERS.indexOf('ended_explicit')]).toBe('true')
     expect(parseInt(row[CSV_HEADERS.indexOf('duration_min')], 10)).toBe(540)
-  })
-
-  it('exports growth measurements as their own group', () => {
-    const m: Measurement = { childId: 'c1', kind: 'weight', value: 7.2, unit: 'kg', at: '2026-03-01T12:00:00.000Z', createdAt: '2026-03-01T12:00:00.000Z' }
-    const csv = toCsv({ events: [], measurements: [m], medicalRecords: [] })
-    const row = emittedType(csv, 'growth')[0]
-    expect(row[CSV_HEADERS.indexOf('kind')]).toBe('weight')
-    expect(row[CSV_HEADERS.indexOf('value')]).toBe('7.2')
-    expect(row[CSV_HEADERS.indexOf('unit')]).toBe('kg')
-  })
-
-  it('exports medical records as their own group', () => {
-    const r: MedicalRecord = { childId: 'c1', kind: 'vaccine', date: '2026-03-01', title: 'MMR', notes: 'left thigh', createdAt: '2026-03-01T00:00:00.000Z' }
-    const csv = toCsv({ events: [], measurements: [], medicalRecords: [r] })
-    const row = emittedType(csv, 'medical')[0]
-    expect(row[CSV_HEADERS.indexOf('kind')]).toBe('vaccine')
-    expect(row[CSV_HEADERS.indexOf('title')]).toBe('MMR')
-    expect(row[CSV_HEADERS.indexOf('note')]).toBe('left thigh')
   })
 
   it('groups by type in a fixed order and sorts oldest first within a group', () => {
@@ -111,8 +86,6 @@ describe('toCsv', () => {
         ev({ type: 'feeding', payload: { kind: 'breast', side: 'left', durationSeconds: 600 } satisfies FeedingPayload, startedAt: '2026-03-01T09:00:00.000Z' }),
         ev({ type: 'routine', payload: { name: 'Bath' } satisfies RoutinePayload, startedAt: '2026-03-01T07:00:00.000Z' }),
       ],
-      measurements: [],
-      medicalRecords: [],
     }
     const csv = toCsv(data)
     const rows = parse(csv)
@@ -124,27 +97,29 @@ describe('toCsv', () => {
 
   it('quotes fields that contain commas', () => {
     const payload: FeedingPayload = { kind: 'solids', foods: ['oatmeal, banana', 'pear'] }
-    const csv = toCsv({ events: [ev({ type: 'feeding', payload, startedAt: '2026-03-01T10:00:00.000Z' })], measurements: [], medicalRecords: [] })
+    const csv = toCsv({ events: [ev({ type: 'feeding', payload, startedAt: '2026-03-01T10:00:00.000Z' })] })
     expect(csv).toContain('"oatmeal, banana, pear"')
   })
 
-  it('sorts medical records and measurements by their own dates', () => {
-    const m1: Measurement = { childId: 'c1', kind: 'height', value: 60, unit: 'cm', at: '2026-03-02T12:00:00.000Z', createdAt: '2026-03-02T12:00:00.000Z' }
-    const m2: Measurement = { childId: 'c1', kind: 'weight', value: 7.0, unit: 'kg', at: '2026-03-01T12:00:00.000Z', createdAt: '2026-03-01T12:00:00.000Z' }
-    const csv = toCsv({ events: [], measurements: [m1, m2], medicalRecords: [] })
-    expect(emittedType(csv, 'growth').map((r) => r[CSV_HEADERS.indexOf('kind')])).toEqual(['weight', 'height'])
+  it('excludes legacy health events from the export', () => {
+    const events = [
+      ev({ type: 'medication', startedAt: '2026-03-01T09:00:00.000Z' } as unknown as Partial<EventRecord>),
+      ev({ type: 'vaccine', startedAt: '2026-03-01T09:00:00.000Z' } as unknown as Partial<EventRecord>),
+      ev({ type: 'diaper', payload: { status: 'wet', rash: true } as unknown as DiaperPayload, startedAt: '2026-03-01T09:00:00.000Z' }),
+      ev({ type: 'memory', payload: { title: 'Beach day' } satisfies MemoryPayload, startedAt: '2026-03-01T10:00:00.000Z' }),
+    ]
+    const rows = parse(toCsv({ events })).slice(1)
+    expect(rows.map((r) => r[1])).toEqual(['memory'])
   })
 
   it('covers every event payload type without dropping a type', () => {
     const events = [
       ev({ type: 'feeding', payload: { kind: 'pump', side: 'both', amount: 3, unit: 'oz' } satisfies FeedingPayload, startedAt: '2026-03-01T10:00:00.000Z' }),
-      ev({ type: 'medication', payload: { name: 'Tylenol', dose: '2.5 mL', given: true } satisfies MedicationPayload, startedAt: '2026-03-01T10:00:00.000Z' }),
-      ev({ type: 'vaccine', payload: { name: 'DTaP', notes: 'ok' } satisfies VaccinePayload, startedAt: '2026-03-01T10:00:00.000Z' }),
       ev({ type: 'milestone', payload: { title: 'First roll' } satisfies MilestonePayload, startedAt: '2026-03-01T10:00:00.000Z' }),
       ev({ type: 'memory', payload: { title: 'Beach day' } satisfies MemoryPayload, startedAt: '2026-03-01T10:00:00.000Z' }),
     ]
-    const csv = toCsv({ events, measurements: [], medicalRecords: [] })
+    const csv = toCsv({ events })
     const rows = parse(csv)
-    expect(rows.slice(1).map((r) => r[1])).toEqual(['feeding', 'medication', 'vaccine', 'milestone', 'memory'])
+    expect(rows.slice(1).map((r) => r[1])).toEqual(['feeding', 'milestone', 'memory'])
   })
 })

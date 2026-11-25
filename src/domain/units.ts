@@ -6,7 +6,7 @@ export type LengthUnit = 'in' | 'cm'
 
 /**
  * One conversion factor per unit pair. These are the numbers the app already
- * used in `growth.ts` and `today.ts`; both now import them from here so a
+ * used in `today.ts`; it now imports them from here so a
  * stored value can never be read back at a second, slightly different ratio.
  */
 export const ML_PER_OZ = 29.57

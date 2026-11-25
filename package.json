@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Lulla — a calm, local-first baby & parent tracker",
+  "description": "Lulla — a calm, local-first parent and family tracker",
   "scripts": {
     "dev": "vite",
     "gen:changelog": "node scripts/gen-changelog.mjs",

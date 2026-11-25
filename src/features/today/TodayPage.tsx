@@ -133,7 +133,7 @@ export function TodayPage() {
       </section>
 
       <footer className="flex items-center justify-center gap-2 pb-2 text-[11px] text-muted">
-        <MoonLogo className="h-4 w-4" /> Data never leaves this device
+        <MoonLogo className="h-4 w-4" /> Stored on your device; synced only if you opt in
       </footer>
     </div>
   )

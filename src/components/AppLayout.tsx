@@ -13,7 +13,7 @@ import { db } from '../db/schema'
 import { useSyncStore } from '../store/syncStore'
 import { useApplyTheme } from '../hooks/useTheme'
 import { openSyncEvents } from '../sync/live'
-import { Sun, Milk, Moon, Baby, Flag, Repeat, BarChart3, Heart, Info, Coffee, Settings, type LucideIcon } from 'lucide-react'
+import { Sun, Milk, Moon, Baby, Flag, Repeat, BarChart3, Info, Settings, type LucideIcon } from 'lucide-react'
 
 const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/', label: 'Today', Icon: Sun },
@@ -23,7 +23,6 @@ const NAV: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/milestones', label: 'Milestones', Icon: Flag },
   { to: '/routines', label: 'Routine', Icon: Repeat },
   { to: '/trends', label: 'Trends', Icon: BarChart3 },
-  { to: '/mom', label: 'Mom', Icon: Heart },
 ]
 
 export function AppLayoutPage() {
@@ -134,15 +133,6 @@ export function AppLayoutPage() {
           <Settings className="h-5 w-5" aria-hidden />
           Settings
         </NavLink>
-        <a
-          href="https://buymeacoffee.com/cycoconutz"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-muted transition hover:bg-sand"
-        >
-          <Coffee className="h-5 w-5" aria-hidden />
-          Buy me a coffee
-        </a>
         <a
           href="https://lulla.dev/landing"
           target="_blank"

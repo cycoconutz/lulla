@@ -11,15 +11,12 @@ type AnyRow = Record<string, unknown> & { id?: EntityId; updatedAt?: string; chi
 const TABLES = {
   children: db.children,
   events: db.events,
-  measurements: db.measurements,
-  medical: db.medicalRecords,
-  parents: db.parentEntries,
 } as unknown as Record<SyncKind, Table<unknown, EntityId>>
 
 const asRow = (v: unknown): AnyRow => v as AnyRow
 
 function childIdOf(kind: SyncKind, row: AnyRow): string | null {
-  return kind === 'children' || kind === 'parents' ? null : (row.childId as string) ?? null
+  return kind === 'children' ? null : (row.childId as string) ?? null
 }
 
 function toWire(kind: SyncKind, row: AnyRow): SyncRecordWire | null {
@@ -54,7 +51,7 @@ export async function adoptForSync(): Promise<void> {
   const childMap = new Map<number, string>()
   let rekeyed = false
 
-  // Children first so events/measurements/medical can remap numeric childIds.
+  // Children first so events can remap numeric childIds.
   const children = await db.children.toArray()
   for (const c of children) {
     if (typeof c.id === 'number') {
@@ -98,9 +95,6 @@ export async function adoptForSync(): Promise<void> {
   }
 
   await rekey('events')
-  await rekey('measurements')
-  await rekey('medical')
-  await rekey('parents', false)
 
   // Nothing to repair and already recorded: skip the settings write.
   if (!rekeyed && settings.sync?.idsAdopted) return
@@ -217,10 +211,8 @@ async function absorbDuplicateChild(incoming: AnyRow, incomingId: string): Promi
     const rows = (await table.where('childId').equals(from).toArray().catch(() => [])) as AnyRow[]
     for (const row of rows) await table.put({ ...row, childId: incomingId })
   }
-  await db.transaction('rw', db.children, db.events, db.measurements, db.medicalRecords, async () => {
+  await db.transaction('rw', db.children, db.events, async () => {
     await remap(TABLES.events)
-    await remap(TABLES.measurements)
-    await remap(TABLES.medical)
     await db.children.delete(from)
   })
 }
@@ -269,8 +261,8 @@ export async function reconcileOrphanRecords(): Promise<number> {
   let removed = 0
   // Delete and tombstone commit together: a crash between them would leave the
   // server row alive with no pending delete to ever remove it (fix 4's bug).
-  await db.transaction('rw', db.events, db.measurements, db.medicalRecords, db.settings, async () => {
-    for (const table of [TABLES.events, TABLES.measurements, TABLES.medical]) {
+  await db.transaction('rw', db.events, db.settings, async () => {
+    for (const table of [TABLES.events]) {
       const rows = (await table.toArray()) as unknown as AnyRow[]
       for (const row of rows) {
         if (typeof row.id !== 'string') continue

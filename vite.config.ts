@@ -38,7 +38,10 @@ export default defineConfig({
       manifest: {
         name: 'Lulla',
         short_name: 'Lulla',
-        description: 'A calm, local-first baby & parent tracker.',
+        description: 'A calm, local-first parent and family tracker.',
+        categories: ['lifestyle', 'parenting'],
+        id: '/',
+        scope: './',
         theme_color: '#f5efe6',
         background_color: '#fbf7f0',
         display: 'standalone',

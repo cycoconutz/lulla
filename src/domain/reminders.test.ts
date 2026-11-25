@@ -65,9 +65,9 @@ describe('normalizeReminderRules', () => {
     expect(migrated.enabled).toBe(true)
   })
 
-  it('preserves the mom activity and a disabled flag', () => {
+  it('maps a removed activity to feeding and preserves a disabled flag', () => {
     const [migrated] = normalizeReminderRules([{ id: 'm', label: 'Me time', intervalMinutes: 60, activity: 'mom', enabled: false }])
-    expect(migrated.activity).toBe('mom')
+    expect(migrated.activity).toBe('feeding')
     expect(migrated.enabled).toBe(false)
   })
 
@@ -78,7 +78,7 @@ describe('normalizeReminderRules', () => {
   })
 
   it('keeps every other activity type intact', () => {
-    for (const activity of ['feeding', 'sleep', 'diaper', 'routine', 'medication', 'vaccine', 'milestone', 'memory'] as const) {
+    for (const activity of ['feeding', 'sleep', 'diaper', 'routine', 'milestone', 'memory'] as const) {
       expect(normalizeReminderRules([{ id: activity, activity }])[0].activity).toBe(activity)
     }
   })

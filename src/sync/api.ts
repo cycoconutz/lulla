@@ -60,6 +60,10 @@ export function deleteHousehold(token: string): Promise<{ ok: boolean }> {
   return call('/household', token, { method: 'DELETE' })
 }
 
+export function deleteAccount(token: string): Promise<{ ok: boolean }> {
+  return call('/account', token, { method: 'DELETE' })
+}
+
 export function pushRecords(
   token: string,
   records: SyncRecordWire[],

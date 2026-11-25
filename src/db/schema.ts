@@ -4,9 +4,6 @@ import type {
   EntityId,
   EventRecord,
   Household,
-  Measurement,
-  MedicalRecord,
-  ParentEntry,
   Photo,
   Settings,
 } from '../domain/types'
@@ -15,9 +12,6 @@ export class LullaDB extends Dexie {
   household!: Table<Household, EntityId>
   children!: Table<Child, EntityId>
   events!: Table<EventRecord, EntityId>
-  measurements!: Table<Measurement, EntityId>
-  medicalRecords!: Table<MedicalRecord, EntityId>
-  parentEntries!: Table<ParentEntry, EntityId>
   photos!: Table<Photo, EntityId>
   settings!: Table<Settings, EntityId>
 
@@ -37,7 +31,32 @@ export class LullaDB extends Dexie {
       photos: '++id, at',
       settings: '++id',
     })
+    // Version 2 drops the tables of removed features. A null store deletes the
+    // table, so existing installs do not keep orphaned data.
+    this.version(2).stores({
+      measurements: null,
+      medicalRecords: null,
+      parentEntries: null,
+    })
+    // Version 3 purges legacy health events (medication, vaccine, rash) that
+    // the removed health features may have left in local storage. Local only:
+    // nothing is tombstoned or pushed to the server.
+    this.version(3)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table('events')
+          .filter((e: { type?: string; payload?: unknown }) => isLegacyHealthEvent(e))
+          .delete(),
+      )
   }
+}
+
+/** True for event types/payloads from removed health features. */
+export function isLegacyHealthEvent(e: { type?: string; payload?: unknown }): boolean {
+  if (e.type === 'medication' || e.type === 'vaccine') return true
+  const p = e.payload
+  return typeof p === 'object' && p !== null && 'rash' in p
 }
 
 export const db = new LullaDB()

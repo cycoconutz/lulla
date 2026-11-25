@@ -111,7 +111,7 @@ export function TrendsPage() {
       )}
 
       <div className="card">
-        <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted">Share with your pediatrician</h2>
+        <h2 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted">Export your data</h2>
         <button onClick={() => void doCsv()} className="btn-gold mb-2 w-full">
           Export all as CSV
         </button>

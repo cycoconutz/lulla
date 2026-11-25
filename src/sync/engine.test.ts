@@ -288,22 +288,14 @@ describe('runSync', () => {
       kind: 'events',
       rev: 2,
     })
-    h.rows.set('msr-1', {
-      data: { id: 'msr-1', childId: 'gone-child', kind: 'height', updatedAt: '2026-01-02T10:00:00.000Z' },
-      deleted: false,
-      kind: 'measurements',
-      rev: 3,
-    })
 
     await runSync('tok')
 
     expect(await db.children.count()).toBe(0)
     expect(await db.events.count()).toBe(0)
-    expect(await db.measurements.count()).toBe(0)
     // Tombstoned in the same cycle's push, so the server rows die too instead
     // of re-syncing back on the next pull.
     expect(h.rows.get('evt-1')?.deleted).toBe(true)
-    expect(h.rows.get('msr-1')?.deleted).toBe(true)
     // ...and nothing is left queued for a later push.
     const s = await (await import('../domain/repositories')).getSettings()
     expect(s.sync?.pendingDeletes ?? []).toHaveLength(0)
@@ -344,7 +336,6 @@ describe('merge duplicate children on join', () => {
     // but created under a local uuid before B joined the family.
     await db.children.add({ id: 'b-clone', name: 'Milo', birthDate: '2026-01-01', order: 0 } as never)
     await db.events.add({ id: 'e-1', childId: 'b-clone', type: 'feeding', startedAt: '2026-01-02T10:00:00.000Z' } as never)
-    await db.measurements.add({ id: 'm-1', childId: 'b-clone', kind: 'height', value: 60, unit: 'cm', takenAt: '2026-01-02T10:00:00.000Z' } as never)
 
     // The household pushes its canonical Milo under a different (server) id.
     h.rows.set('canonical-milo', {
@@ -370,8 +361,6 @@ describe('merge duplicate children on join', () => {
     // Child-scoped records were re-pointed to the canonical id.
     const evs = await db.events.toArray()
     expect(evs[0].childId).toBe('canonical-milo')
-    const ms = await db.measurements.toArray()
-    expect(ms[0].childId).toBe('canonical-milo')
 
     // The clone id was never pushed to the server, and the canonical child
     // (already on the server) is not re-pushed — only the device's own rows.
@@ -402,8 +391,6 @@ describe('deleteChild', () => {
     const { deleteChild, getSettings } = await import('../domain/repositories')
     await db.children.add({ id: 'child-1', name: 'Milo', birthDate: '2026-01-01', order: 0 } as never)
     await db.events.add({ id: 'evt-1', childId: 'child-1', type: 'feeding', startedAt: '2026-01-02T10:00:00.000Z' } as never)
-    await db.measurements.add({ id: 'msr-1', childId: 'child-1', kind: 'height', valueCm: 52, measuredAt: '2026-01-02T10:00:00.000Z' } as never)
-    await db.medicalRecords.add({ id: 'med-1', childId: 'child-1', title: 'Checkup' } as never)
     // An unrelated child whose data must survive.
     await db.children.add({ id: 'child-2', name: 'Nina', birthDate: '2026-02-01', order: 1 } as never)
 
@@ -412,16 +399,12 @@ describe('deleteChild', () => {
     expect(await db.children.count()).toBe(1)
     expect((await db.children.toArray())[0].id).toBe('child-2')
     expect(await db.events.count()).toBe(0)
-    expect(await db.measurements.count()).toBe(0)
-    expect(await db.medicalRecords.count()).toBe(0)
 
     // Pending deletes recorded for sync (child + every removed row, string ids).
     const s = await getSettings()
     const ids = (s.sync?.pendingDeletes ?? []).map((d) => d.id)
     expect(ids).toContain('child-1')
     expect(ids).toContain('evt-1')
-    expect(ids).toContain('msr-1')
-    expect(ids).toContain('med-1')
   })
 
   it('removes rows without touching today (numeric local child left alone)', async () => {

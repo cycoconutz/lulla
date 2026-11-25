@@ -153,7 +153,7 @@ export function OnboardingPage() {
         <MoonLogo className="h-14 w-14" />
         <h1 className="mt-3 text-3xl font-extrabold tracking-tight">lulla</h1>
         <p className="mt-1 max-w-xs text-muted">
-          A calm, private way to track this little life — feedings, sleep, diapers, growth, and more.
+          A calm, private way to track this little life — feedings, sleep, diapers, milestones, and more.
         </p>
       </div>
 
@@ -315,7 +315,7 @@ export function OnboardingPage() {
       <p className="mt-6 text-center text-[11px] leading-relaxed text-muted">
         All data stays on this device unless you join family sync. No ads, no tracking.
         <br />
-        Not medical advice — always follow your pediatrician’s guidance.
+        Lulla is a parenting aid, not medical advice.
       </p>
     </div>
   )

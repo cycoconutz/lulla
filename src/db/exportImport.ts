@@ -1,15 +1,13 @@
-import { db } from './schema'
+import { db, isLegacyHealthEvent } from './schema'
 import type { EntityId } from '../domain/types'
-import type { Child, Household, MedicalRecord, Measurement, ParentEntry, Photo, Settings } from '../domain/types'
+import type { Child, Household, Photo, Settings } from '../domain/types'
 import type {
   DiaperPayload,
   EventRecord,
-  MedicationPayload,
   MemoryPayload,
   MilestonePayload,
   RoutinePayload,
   SleepPayload,
-  VaccinePayload,
 } from '../domain/types'
 import { feedingLabel } from '../domain/repositories'
 
@@ -20,9 +18,6 @@ export interface BackupPayload {
   household: Household[]
   children: Child[]
   events: EventRecord[]
-  measurements: Measurement[]
-  medicalRecords: MedicalRecord[]
-  parentEntries: ParentEntry[]
   photos: Photo[]
   settings: Settings[]
 }
@@ -35,9 +30,6 @@ export async function exportBackup(): Promise<BackupPayload> {
     household: await db.household.toArray(),
     children: await db.children.toArray(),
     events: await db.events.toArray(),
-    measurements: await db.measurements.toArray(),
-    medicalRecords: await db.medicalRecords.toArray(),
-    parentEntries: await db.parentEntries.toArray(),
     photos: await db.photos.toArray(),
     settings: await db.settings.toArray(),
   }
@@ -49,9 +41,6 @@ export async function importBackup(payload: BackupPayload): Promise<number> {
     db.household,
     db.children,
     db.events,
-    db.measurements,
-    db.medicalRecords,
-    db.parentEntries,
     db.photos,
     db.settings,
   ] as const
@@ -61,9 +50,6 @@ export async function importBackup(payload: BackupPayload): Promise<number> {
       db.household.bulkAdd(payload.household),
       db.children.bulkAdd(payload.children),
       db.events.bulkAdd(payload.events),
-      db.measurements.bulkAdd(payload.measurements),
-      db.medicalRecords.bulkAdd(payload.medicalRecords),
-      db.parentEntries.bulkAdd(payload.parentEntries),
       db.photos.bulkAdd(payload.photos),
       db.settings.bulkAdd(payload.settings),
     ])
@@ -76,9 +62,6 @@ function countRecords(payload: BackupPayload): number {
   return [
     payload.children,
     payload.events,
-    payload.measurements,
-    payload.medicalRecords,
-    payload.parentEntries,
     payload.photos,
   ].reduce((n, arr) => n + (arr?.length ?? 0), 0)
 }
@@ -118,10 +101,6 @@ export const CSV_HEADERS = [
   'foods',
   'status',
   'consistency',
-  'rash',
-  'given',
-  'dose',
-  'value',
   'started_explicit',
   'ended_explicit',
   'photo_count',
@@ -133,12 +112,8 @@ const TYPE_ORDER: string[] = [
   'sleep',
   'diaper',
   'routine',
-  'medication',
-  'vaccine',
   'milestone',
   'memory',
-  'growth',
-  'medical',
 ]
 
 interface CsvRow {
@@ -211,26 +186,11 @@ function eventRow(ev: EventRecord): CsvRow {
       set(cells, 'status', p.status)
       set(cells, 'detail', p.status)
       set(cells, 'consistency', p.consistency)
-      set(cells, 'rash', p.rash)
       break
     }
     case 'routine':
       set(cells, 'title', (ev.payload as RoutinePayload).name)
       break
-    case 'medication': {
-      const p = ev.payload as MedicationPayload
-      set(cells, 'title', p.name)
-      set(cells, 'dose', p.dose)
-      set(cells, 'given', p.given)
-      break
-    }
-    case 'vaccine': {
-      const p = ev.payload as VaccinePayload
-      set(cells, 'title', p.name)
-      // A vaccine can carry its own notes alongside any row-level note.
-      set(cells, 'note', ev.note ?? p.notes)
-      break
-    }
     case 'milestone':
       set(cells, 'title', (ev.payload as MilestonePayload).title)
       break
@@ -242,50 +202,19 @@ function eventRow(ev: EventRecord): CsvRow {
   return { type: ev.type, sortKey: ev.startedAt, cells }
 }
 
-function measurementRow(m: Measurement): CsvRow {
-  const cells = emptyRow()
-  set(cells, 'date', localDate(m.at))
-  set(cells, 'type', 'growth')
-  set(cells, 'kind', m.kind)
-  set(cells, 'value', m.value)
-  set(cells, 'unit', m.unit)
-  set(cells, 'start', localDateTime(m.at))
-  return { type: 'growth', sortKey: m.at, cells }
-}
-
-function medicalRow(r: MedicalRecord): CsvRow {
-  const cells = emptyRow()
-  // Medical records carry a date with no time, so that is all we can sort on.
-  set(cells, 'date', r.date)
-  set(cells, 'type', 'medical')
-  set(cells, 'kind', r.kind)
-  set(cells, 'title', r.title)
-  set(cells, 'detail', r.detail)
-  set(cells, 'note', r.notes)
-  return { type: 'medical', sortKey: r.date, cells }
-}
-
 export interface CsvData {
   events: EventRecord[]
-  measurements: Measurement[]
-  medicalRecords: MedicalRecord[]
 }
 
 /** Everything logged about one child, ready for `toCsv`. */
 export async function csvDataForChild(childId: EntityId): Promise<CsvData> {
-  const [events, measurements, medicalRecords] = await Promise.all([
-    db.events.where('childId').equals(childId).toArray(),
-    db.measurements.where('childId').equals(childId).toArray(),
-    db.medicalRecords.where('childId').equals(childId).toArray(),
-  ])
-  return { events, measurements, medicalRecords }
+  const events = await db.events.where('childId').equals(childId).toArray()
+  return { events }
 }
 
 export function toCsv(data: CsvData): string {
   const rows: CsvRow[] = [
-    ...data.events.map(eventRow),
-    ...data.measurements.map(measurementRow),
-    ...data.medicalRecords.map(medicalRow),
+    ...data.events.filter((e) => !isLegacyHealthEvent(e)).map(eventRow),
   ]
   rows.sort((a, b) => {
     const g = TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type)

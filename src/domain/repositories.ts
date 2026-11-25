@@ -6,10 +6,6 @@ import type {
   EventRecord,
   EventType,
   FeedingPayload,
-  Measurement,
-  MedicalRecord,
-  ParentEntry,
-  ParentProfile,
   ReminderRule,
   Settings,
 } from './types'
@@ -77,8 +73,6 @@ export const allEventTypes = [
   'sleep',
   'diaper',
   'routine',
-  'medication',
-  'vaccine',
   'milestone',
 ] as const
 
@@ -102,19 +96,13 @@ export const deleteChild = async (id: EntityId) => {
     'rw',
     db.children,
     db.events,
-    db.measurements,
-    db.medicalRecords,
     db.settings,
     async () => {
       const rows = await Promise.all([
         db.events.where('childId').equals(id).toArray(),
-        db.measurements.where('childId').equals(id).toArray(),
-        db.medicalRecords.where('childId').equals(id).toArray(),
       ])
       await db.children.delete(id)
       await db.events.where('childId').equals(id).delete()
-      await db.measurements.where('childId').equals(id).delete()
-      await db.medicalRecords.where('childId').equals(id).delete()
       for (const rid of [id, ...rows.flatMap((r) => r.map((x) => x.id))]) {
         if (typeof rid === 'string') await recordDeleteTombstone(rid)
       }
@@ -190,16 +178,12 @@ const everyEventType: readonly EventType[] = [
   'sleep',
   'diaper',
   'routine',
-  'medication',
-  'vaccine',
   'milestone',
   'memory',
 ]
 
-function normalizeActivity(value: unknown): EventType | 'mom' {
-  return value === 'mom' || everyEventType.includes(value as EventType)
-    ? (value as EventType | 'mom')
-    : 'feeding'
+function normalizeActivity(value: unknown): EventType {
+  return everyEventType.includes(value as EventType) ? (value as EventType) : 'feeding'
 }
 
 /**
@@ -251,49 +235,6 @@ export function defaultSettings(): Settings {
     quietHours: null,
     noise: defaultNoiseSettings(),
   }
-}
-
-// ---- measurements ----
-
-export const addMeasurement = (m: Omit<Measurement, 'id' | 'createdAt'>) =>
-  db.measurements.add({ ...m, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
-
-/** Restamp updatedAt so a corrected measurement wins LWW on the next sync push. */
-export const updateMeasurement = (m: Measurement) =>
-  db.measurements.put({ ...m, updatedAt: nowIso() })
-
-export const deleteMeasurement = async (id: EntityId) => {
-  await recordDeleteTombstone(id)
-  return db.measurements.delete(id)
-}
-
-export const updateMedicalRecord = (r: MedicalRecord) =>
-  db.medicalRecords.put({ ...r, updatedAt: nowIso() })
-
-export const deleteMedicalRecord = async (id: EntityId) => {
-  await recordDeleteTombstone(id)
-  return db.medicalRecords.delete(id)
-}
-
-export const measurementsForKind = async (childId: EntityId, kind: Measurement['kind']) => {
-  const all = await db.measurements
-    .where('[childId+kind+at]')
-    .between([childId, kind, ''], [childId, kind, '\uffff'])
-    .toArray()
-  return all.sort((a, b) => a.at.localeCompare(b.at))
-}
-
-// ---- parent entries ----
-
-export const addParentEntry = (e: Omit<ParentEntry, 'id' | 'createdAt'>) =>
-  db.parentEntries.add({ ...e, id: newId(), createdAt: nowIso(), updatedAt: nowIso() })
-
-export const parentEntriesFor = async (profile: ParentProfile, day = new Date()) => {
-  const all = await db.parentEntries
-    .where('[profile+at]')
-    .between([profile, dayStartIso(day)], [profile, dayEndIso(day)])
-    .toArray()
-  return all.sort((a, b) => a.at.localeCompare(b.at))
 }
 
 // ---- feeding helpers ----

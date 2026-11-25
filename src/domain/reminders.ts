@@ -53,7 +53,7 @@ export async function scheduleRemindersForChild(
   if (getPushCred()) return
   for (const rule of settings.reminders) {
     if (!rule.enabled) continue
-    const type = rule.activity === 'mom' ? 'feeding' : rule.activity
+    const type = rule.activity
     const last = await latestEventOfTypes(childId, [type])
     const base = last
       ? new Date(last.startedAt).getTime() + rule.intervalMinutes * 60000

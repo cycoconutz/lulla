@@ -63,16 +63,10 @@ export function routeForType(type: string): string {
       return '#/diapers'
     case 'routine':
       return '#/routines'
-    case 'medication':
-      return '#/milestones'
-    case 'vaccine':
-      return '#/milestones'
     case 'milestone':
       return '#/milestones'
     case 'memory':
       return '#/milestones'
-    case 'mom':
-      return '#/mom'
     default:
       return '#/'
   }
@@ -89,7 +83,7 @@ export function computeItemsForRule(
   if (!rule.enabled || rule.intervalMinutes <= 0) return []
   const items: PushItem[] = []
   const horizon = now + WINDOW_DAYS * 86400000
-  const type = rule.activity === 'mom' ? 'feeding' : rule.activity
+  const type = rule.activity
   const intervalMs = rule.intervalMinutes * 60000
   // First reminder: interval after the last log (or after "now" when there's
   // nothing logged yet), rounded so it isn't skewed by the moment of setup.
@@ -118,7 +112,7 @@ export async function computePushItemsForChild(child: Child, rules: ReminderRule
   let items: PushItem[] = []
   for (const rule of rules) {
     if (!rule.enabled || rule.intervalMinutes <= 0) continue
-    const type = rule.activity === 'mom' ? 'feeding' : rule.activity
+    const type = rule.activity
     const last = await latestEventOfTypes(child.id!, [type])
     items = items.concat(computeItemsForRule(rule, child, last ? new Date(last.startedAt).getTime() : null, quiet))
   }

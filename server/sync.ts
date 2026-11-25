@@ -14,7 +14,7 @@ const issuer = new URL(NEON_AUTH_BASE_URL).origin;
 const pool = new Pool({ connectionString: DATABASE_URL, max: 5 });
 attachDatabasePool(pool);
 
-const KINDS = new Set(["children", "events", "measurements", "medical", "parents"]);
+const KINDS = new Set(["children", "events"]);
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1
 const CODE_LENGTH = 8;
@@ -221,6 +221,40 @@ app.delete("/household", async (c) => {
   return c.json({ ok: true });
 });
 
+// Delete the caller's account data: leaves every household they belong to,
+// deletes the households they own (cascade-removing members, invites and
+// records), and removes invites they created. The Neon Auth user itself is NOT
+// deleted here: no supported self-service deletion call from a Function has been
+// confirmed (see the delete-account page for the manual fallback), so the
+// response reports authUserDeleted: false rather than guessing.
+app.delete("/account", async (c) => {
+  const userId = await bearerUserId(c.req);
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const ownedIds = (
+      await client.query("SELECT id FROM lulla.households WHERE owner_user_id = $1", [userId])
+    ).rows.map((r: { id: string }) => r.id);
+    if (ownedIds.length > 0) {
+      await client.query("DELETE FROM lulla.sync_records WHERE household_id = ANY($1)", [ownedIds]);
+      await client.query("DELETE FROM lulla.invites WHERE household_id = ANY($1)", [ownedIds]);
+      await client.query("DELETE FROM lulla.members WHERE household_id = ANY($1)", [ownedIds]);
+    }
+    const owned = await client.query("DELETE FROM lulla.households WHERE owner_user_id = $1", [userId]);
+    await client.query("DELETE FROM lulla.members WHERE user_id = $1", [userId]);
+    await client.query("DELETE FROM lulla.invites WHERE created_by = $1", [userId]);
+    await client.query("COMMIT");
+    return c.json({ ok: true, householdsDeleted: owned.rowCount ?? 0, authUserDeleted: false });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+});
+
 // Push local records and deletes. LWW by client `updatedAt` (ISO string):
 // a stale version never bumps the row's rev, so a late re-push can't clobber
 // a newer version another device already wrote.
@@ -340,7 +374,7 @@ app.post("/push", async (c) => {
         `UPDATE lulla.sync_records
          SET data = NULL, deleted = true, rev = nextval('lulla.sync_records_rev_seq')
          WHERE household_id = $1 AND child_id = ANY($2::text[])
-           AND kind IN ('events', 'measurements', 'medical') AND NOT deleted`,
+           AND NOT deleted`,
         [member.household_id, deletedIds],
       );
       cascaded = res.rowCount ?? 0;

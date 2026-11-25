@@ -43,7 +43,6 @@ export function draftFromEvent(rec: EventRecord): EventDraft | null {
         startedAt: rec.startedAt,
         payload: {
           status: p.status,
-          rash: !!p.rash,
           consistency: p.consistency ?? 'normal',
         },
       }
@@ -112,7 +111,7 @@ export function applyEdit(rec: EventRecord, draft: EventDraft): EditOutcome {
 
   switch (draft.type) {
     case 'diaper': {
-      const { status, rash, consistency } = draft.payload
+      const { status, consistency } = draft.payload
       if (!status) return { ok: false, error: 'Pick a diaper status.' }
       if (!CONSISTENCIES.includes(consistency ?? 'normal')) {
         return { ok: false, error: 'Unknown consistency.' }
@@ -123,7 +122,7 @@ export function applyEdit(rec: EventRecord, draft: EventDraft): EditOutcome {
           ...rec,
           startedAt: at(startMs),
           endedAt: undefined,
-          payload: { status, rash, consistency },
+          payload: { status, consistency },
         },
       }
     }

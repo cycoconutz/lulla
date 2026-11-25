@@ -13,8 +13,6 @@ export type EventType =
   | 'sleep'
   | 'diaper'
   | 'routine'
-  | 'medication'
-  | 'vaccine'
   | 'milestone'
   | 'memory'
 
@@ -45,23 +43,11 @@ export type SleepPayload = {
 
 export type DiaperPayload = {
   status: 'wet' | 'dirty' | 'mixed' | 'dry'
-  rash?: boolean
   consistency?: 'normal' | 'loose' | 'hard' | 'seedy'
 }
 
 export type RoutinePayload = {
   name: string
-}
-
-export type MedicationPayload = {
-  name: string
-  dose?: string
-  given: boolean
-}
-
-export type VaccinePayload = {
-  name: string
-  notes?: string
 }
 
 export type MilestonePayload = {
@@ -77,8 +63,6 @@ export type EventPayload =
   | SleepPayload
   | DiaperPayload
   | RoutinePayload
-  | MedicationPayload
-  | VaccinePayload
   | MilestonePayload
   | MemoryPayload
 
@@ -107,52 +91,6 @@ export interface Child {
   updatedAt?: string
 }
 
-export interface Measurement {
-  id?: EntityId
-  childId: EntityId
-  kind: 'weight' | 'height' | 'head'
-  value: number
-  unit: 'lb' | 'kg' | 'in' | 'cm'
-  at: string
-  createdAt: string
-  updatedAt?: string
-}
-
-export interface MedicalRecord {
-  id?: EntityId
-  childId: EntityId
-  kind: 'record' | 'vaccine' | 'medication'
-  date: string
-  title: string
-  detail?: string
-  notes?: string
-  createdAt: string
-  updatedAt?: string
-}
-
-export type ParentProfile = 'pregnancy' | 'postpartum'
-
-export interface ParentEntry {
-  id?: EntityId
-  profile: ParentProfile
-  kind:
-    | 'weight'
-    | 'vitals'
-    | 'symptom'
-    | 'mood'
-    | 'journal'
-    | 'hydration'
-    | 'food'
-    | 'sleep'
-    | 'appointment'
-    | 'routine'
-  at: string
-  payload: Record<string, unknown>
-  note?: string
-  createdAt: string
-  updatedAt?: string
-}
-
 export interface Photo {
   id?: EntityId
   blob: Blob
@@ -172,7 +110,7 @@ export interface ReminderRule {
   label: string
   /** Repeat interval in whole minutes. Clamped to REMINDER_MIN/MAX_MINUTES. */
   intervalMinutes: number
-  activity: EventType | 'mom'
+  activity: EventType
   enabled: boolean
 }
 

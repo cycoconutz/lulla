@@ -23,15 +23,13 @@ import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
 import { AccountCard } from '../account/AccountCard'
-import { Baby, Bell, BellOff, Camera, Coffee, Milk, Moon, Pill, Repeat, Sparkles, Syringe, X, type LucideIcon } from 'lucide-react'
+import { Baby, Bell, BellOff, Camera, Milk, Moon, Repeat, Sparkles, X, type LucideIcon } from 'lucide-react'
 
 const ACTIVITY_LABELS: Record<EventType, { Icon: LucideIcon; label: string }> = {
   feeding: { Icon: Milk, label: 'Feeding' },
   sleep: { Icon: Moon, label: 'Sleep' },
   diaper: { Icon: Baby, label: 'Diapers' },
   routine: { Icon: Repeat, label: 'Routines' },
-  medication: { Icon: Pill, label: 'Medicine' },
-  vaccine: { Icon: Syringe, label: 'Vaccines' },
   milestone: { Icon: Sparkles, label: 'Milestones' },
   memory: { Icon: Camera, label: 'Memories' },
 }
@@ -100,9 +98,6 @@ export function SettingsPage() {
       db.household.clear(),
       db.children.clear(),
       db.events.clear(),
-      db.measurements.clear(),
-      db.medicalRecords.clear(),
-      db.parentEntries.clear(),
       db.photos.clear(),
       db.settings.clear(),
     ])
@@ -124,14 +119,6 @@ export function SettingsPage() {
             options={[
               { value: 'oz', label: 'oz' },
               { value: 'ml', label: 'ml' },
-            ]}
-          />
-          <Segmented
-            value={settings.unitsWeight}
-            onChange={(v) => set({ unitsWeight: v })}
-            options={[
-              { value: 'lb', label: 'lb / in' },
-              { value: 'kg', label: 'kg / cm' },
             ]}
           />
         </div>
@@ -406,19 +393,11 @@ export function SettingsPage() {
           affiliated with any existing tracker app. Not medical advice.
         </p>
         <p className="mt-2 text-xs font-bold text-ink/70">Lulla v{__APP_VERSION__}</p>
-        <a href="#/changelog" className="btn-outline mt-3 w-full">
-          <Sparkles className="h-4 w-4" aria-hidden /> What's new — changelog
-        </a>
+        <p className="mt-2 text-xs">
+          <a href="/privacy" className="font-bold text-gold-deep underline">Privacy policy</a>
+        </p>
       </section>
 
-      <a
-        href="https://buymeacoffee.com/cycoconutz"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn-gold w-full"
-      >
-        <Coffee className="h-4 w-4" aria-hidden /> Buy me a coffee
-      </a>
     </div>
   )
 }

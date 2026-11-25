@@ -1,14 +1,13 @@
 # Lulla 🌙
 
-A calm, fast, local-first **baby & parent tracker** for phones and desktops.
+A calm, fast, local-first **parent and family tracker** for phones and desktops.
 
 Lulla is an original app built from scratch (it is **not** affiliated with any
-existing tracker app). It tracks feeding, sleep, diapers, growth, routines,
-milestones, and pregnancy/postpartum health — all stored **on your device**
-(IndexedDB), fully exportable, and installable as a PWA.
+existing tracker app). It tracks feeding, sleep, diapers, routines and
+milestones. Data is stored **on your device** (IndexedDB) and can optionally be
+synced to your family's account. It is fully exportable and installable as a PWA.
 
-> Lulla is a parenting aid, not medical advice. Always consult a pediatrician
-> or health professional for questions about your child's or your own health.
+> Lulla is a parenting aid, not medical advice.
 
 ## Features
 
@@ -16,13 +15,11 @@ milestones, and pregnancy/postpartum health — all stored **on your device**
 - **Sleep** — start/stop timer, wake-window insights, nap and night history
 - **Diapers** — wet/dirty/pee/poop counts, one-tap or detailed
 - **Milestones** — age milestones and firsts in one list, with notes and photos
-- **Health** — vaccines, medications and records
-- **Growth** — weight / length / head charts against WHO percentile references
 - **Routines** — day summaries and routine logging
 - **Trends** — the last 7 days at a glance
-- **Mom** — pregnancy, labor, and postpartum tracking
 - **Reminders** — best-effort local notifications
-- **Data you own** — full JSON backup, CSV export, local-first storage
+- **Family sync** — optional account (Neon Auth + Postgres) to share logs across devices
+- **Data you own** — full JSON backup, CSV export, local-first storage, account deletion
 
 ## Tech
 
@@ -40,11 +37,10 @@ npm run test       # vitest
 npm run build      # production build (typecheck + vite build)
 ```
 
-## Roadmap
+## Status
 
-- **v1 (now)** — local-first MVP as a PWA on GitHub Pages
-- **v2 (planned)** — optional account sync (Neon Postgres + Auth) so data
-  follows you across devices while remaining exportable
+- **Now** — local-first PWA with optional family sync (Neon Postgres + Auth),
+  exportable data, and in-app account deletion
 
 ## License
 

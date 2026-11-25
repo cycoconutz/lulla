@@ -8,7 +8,7 @@ export const NEON_AUTH_BASE_URL =
 export const SYNC_API = 'https://br-bitter-frost-b4p0l50q-sync.compute.c-6.us-east-2.aws.neon.tech'
 
 /** Dexie table names synced server-side, per the sync function's KINDS set. */
-export const SYNC_KINDS = ['children', 'events', 'measurements', 'medical', 'parents'] as const
+export const SYNC_KINDS = ['children', 'events'] as const
 export type SyncKind = (typeof SYNC_KINDS)[number]
 
 export interface SyncDelete {

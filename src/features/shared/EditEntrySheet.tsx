@@ -3,7 +3,6 @@ import { Sheet } from '../../components/ui/Sheet'
 import { Segmented } from '../../components/ui/Segmented'
 import { Stepper } from '../../components/ui/Stepper'
 import { DateTimeField } from '../../components/ui/DateTimeField'
-import { Bandage } from 'lucide-react'
 import type { EntityId, EventRecord, FeedingPayload } from '../../domain/types'
 import { updateEvent } from '../../domain/repositories'
 import {
@@ -126,17 +125,6 @@ function DiaperFields({ draft, set }: { draft: Extract<EventDraft, { type: 'diap
           </button>
         ))}
       </div>
-      <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-paper px-4 py-3">
-        <span className="flex items-center gap-1.5 font-extrabold">
-          <Bandage className="h-4 w-4 text-muted" aria-hidden /> Rash?
-        </span>
-        <input
-          type="checkbox"
-          checked={!!p.rash}
-          onChange={(e) => patch({ rash: e.target.checked })}
-          className="h-5 w-5 accent-[#c98d74]"
-        />
-      </label>
       <div>
         <label className="mb-1 block text-xs font-bold text-muted">Time</label>
         <DateTimeField value={draft.startedAt} onChange={(startedAt) => set({ ...draft, startedAt })} />

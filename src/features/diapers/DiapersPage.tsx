@@ -12,7 +12,7 @@ import { DateTimeField } from '../../components/ui/DateTimeField'
 import { DayNav } from '../../components/ui/DayNav'
 import { EditEntrySheet } from '../shared/EditEntrySheet'
 import { Pencil, Trash2 } from 'lucide-react'
-import { Droplets, CloudRain, CloudSun, Wind, Bandage, type LucideIcon } from 'lucide-react'
+import { Droplets, CloudRain, CloudSun, Wind, type LucideIcon } from 'lucide-react'
 
 /**
  * Quick-log gradients. The `dark:` stops are required: this is the only screen
@@ -87,7 +87,7 @@ export function DiapersPage() {
       )}
 
       <button onClick={() => setDetailedOpen(true)} className="btn-outline w-full">
-        Log with details (time, consistency, rash)
+        Log with details (time, consistency)
       </button>
 
       <Sheet open={detailedOpen} onClose={() => setDetailedOpen(false)} title="Diaper details">
@@ -122,13 +122,12 @@ export function DiapersPage() {
 
 function DetailedDiaper({ childId, defaultAt, onClose }: { childId?: EntityId; defaultAt?: string; onClose: () => void }) {
   const [status, setStatus] = useState<DiaperPayload['status']>('dirty')
-  const [rash, setRash] = useState(false)
   const [consistency, setConsistency] = useState<DiaperPayload['consistency']>('normal')
   const [at, setAt] = useState<string>(defaultAt ?? nowIso())
 
   const save = () => {
     if (!childId) return
-    const payload: DiaperPayload = { status, rash, consistency }
+    const payload: DiaperPayload = { status, consistency }
     void recordEvent({ childId, type: 'diaper', startedAt: at, payload, createdAt: nowIso() })
     onClose()
   }
@@ -149,10 +148,6 @@ function DetailedDiaper({ childId, defaultAt, onClose }: { childId?: EntityId; d
           </button>
         ))}
       </div>
-      <label className="flex items-center justify-between rounded-2xl border border-ink/10 bg-paper px-4 py-3">
-        <span className="flex items-center gap-1.5 font-extrabold"><Bandage className="h-4 w-4 text-muted" aria-hidden /> Rash?</span>
-        <input type="checkbox" checked={rash} onChange={(e) => setRash(e.target.checked)} className="h-5 w-5 accent-[#c98d74]" />
-      </label>
       <label className="block text-xs font-bold text-muted">Time</label>
       <DateTimeField value={at} onChange={setAt} />
       <button onClick={save} className="btn-gold w-full !py-4">
@@ -192,7 +187,6 @@ function DiaperList({
                   return (
                     <>
                       {q && <q.Icon className="inline h-3.5 w-3.5 text-muted" aria-hidden />} {p.status}
-                      {p.rash && <Bandage className="inline h-3.5 w-3.5 text-muted" aria-hidden />}
                       {p.consistency && p.consistency !== 'normal' ? ` · ${p.consistency}` : ''}
                     </>
                   )

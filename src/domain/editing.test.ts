@@ -28,14 +28,14 @@ const ok = (draft: EventDraft, rec: EventRecord) => {
 
 describe('draftFromEvent', () => {
   it('round-trips a diaper into an equivalent draft', () => {
-    const rec = base({ payload: { status: 'mixed', rash: true, consistency: 'loose' } })
+    const rec = base({ payload: { status: 'mixed', consistency: 'loose' } })
     const draft = draftFromEvent(rec)!
     expect(draft).toEqual({
       type: 'diaper',
       startedAt: rec.startedAt,
-      payload: { status: 'mixed', rash: true, consistency: 'loose' },
+      payload: { status: 'mixed', consistency: 'loose' },
     })
-    expect(ok(draft, rec)).toEqual({ ...rec, payload: { status: 'mixed', rash: true, consistency: 'loose' } })
+    expect(ok(draft, rec)).toEqual({ ...rec, payload: { status: 'mixed', consistency: 'loose' } })
   })
 
   it('defaults a missing consistency to normal', () => {
@@ -60,7 +60,7 @@ describe('draftFromEvent', () => {
 
   it('refuses an open sleep and an unsupported type', () => {
     expect(draftFromEvent(base({ type: 'sleep', payload: { kind: 'nap' } }))).toBeNull()
-    expect(draftFromEvent(base({ type: 'vaccine', payload: { name: 'Flu' } }))).toBeNull()
+    expect(draftFromEvent(base({ type: 'unknown' as never, payload: { name: 'Flu' } }))).toBeNull()
   })
 
   it('reads legacy memory rows and normalises the sleep kind', () => {
@@ -77,8 +77,8 @@ describe('draftFromEvent', () => {
 describe('applyEdit: diaper', () => {
   it('changes status and clears a stale endedAt', () => {
     const rec = base({ endedAt: '2026-03-01T10:30:00.000Z', payload: { status: 'wet' } })
-    const out = ok({ type: 'diaper', startedAt: rec.startedAt, payload: { status: 'dirty', rash: true, consistency: 'hard' } }, rec)
-    expect(out.payload).toEqual({ status: 'dirty', rash: true, consistency: 'hard' })
+    const out = ok({ type: 'diaper', startedAt: rec.startedAt, payload: { status: 'dirty', consistency: 'hard' } }, rec)
+    expect(out.payload).toEqual({ status: 'dirty', consistency: 'hard' })
     expect(out.endedAt).toBeUndefined()
   })
 

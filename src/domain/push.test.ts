@@ -49,7 +49,7 @@ describe('routeForType', () => {
   it('maps activity types to hash routes', () => {
     expect(routeForType('feeding')).toBe('#/feeding')
     expect(routeForType('sleep')).toBe('#/sleep')
-    expect(routeForType('mom')).toBe('#/mom')
+    expect(routeForType('milestone')).toBe('#/milestones')
     expect(routeForType('unknown')).toBe('#/')
   })
 })
@@ -106,11 +106,6 @@ describe('computeItemsForRule', () => {
     expect(items.length).toBeGreaterThan(0)
   })
 
-  it('uses the mom activity as feeding for lookup', () => {
-    const items = computeItemsForRule(rule({ activity: 'mom', label: 'Me time' }), child, null, null, now)
-    expect(items[0].data.route).toBe('#/feeding')
-    expect(items[0].title).toContain('Me time')
-  })
 })
 
 describe('base64url helpers', () => {

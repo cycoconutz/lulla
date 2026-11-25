@@ -20,7 +20,7 @@ import { runSync } from './engine'
 const h = vi.hoisted(() => {
   const isRecordId = (s: unknown): s is string =>
     typeof s === 'string' && /^[A-Za-z0-9_-]{6,64}$/.test(s)
-  const KINDS = new Set(['children', 'events', 'measurements', 'medical', 'parents'])
+  const KINDS = new Set(['children', 'events'])
   type Row = { data: Record<string, unknown> | null; deleted: boolean; kind: string; rev: number }
   const rows = new Map<string, Row>()
   const rejected: { id: string; kind: string; childId: unknown }[] = []

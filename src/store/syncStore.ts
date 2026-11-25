@@ -1,9 +1,12 @@
 import { create } from 'zustand'
+import { db } from '../db/schema'
 import { getSettings, saveSettings } from '../domain/repositories'
 import type { SyncState } from '../domain/types'
 import { restoreSession, sessionToken, signInEmail, signOutSession, signUpEmail, type SessionUser } from '../sync/auth'
-import { createHousehold, deleteHousehold as apiDeleteHousehold, fetchHousehold, joinHousehold as apiJoinHousehold, leaveHousehold as apiLeaveHousehold, newInvite, SyncApiError } from '../sync/api'
+import { createHousehold, deleteAccount as apiDeleteAccount, deleteHousehold as apiDeleteHousehold, fetchHousehold, joinHousehold as apiJoinHousehold, leaveHousehold as apiLeaveHousehold, newInvite, SyncApiError } from '../sync/api'
 import { runSync } from '../sync/engine'
+import { disablePush } from '../domain/push'
+import { clearPushCred } from '../domain/pushCred'
 
 interface SyncStore {
   booting: boolean
@@ -22,6 +25,7 @@ interface SyncStore {
   syncNow: () => Promise<boolean>
   leaveHousehold: () => Promise<boolean>
   deleteHousehold: () => Promise<boolean>
+  deleteAccount: () => Promise<boolean>
   _adopt: () => Promise<void>
   _setError: (e: string | null) => void
 }
@@ -331,6 +335,47 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
       set({ error: msg(err) })
       return false
     }
+  },
+
+  deleteAccount: async () => {
+    const token = await sessionToken()
+    if (!token) {
+      set({ error: 'Please sign in first.' })
+      return false
+    }
+    try {
+      await apiDeleteAccount(token)
+    } catch (err) {
+      set({ error: msg(err) })
+      return false
+    }
+    // Drop this device's push subscription and credential; failures must not block deletion.
+    try {
+      await disablePush()
+    } catch {
+      // best-effort
+    }
+    try {
+      clearPushCred()
+    } catch {
+      // best-effort
+    }
+    // Server data is gone: sign out and wipe everything stored on this device.
+    try {
+      await signOutSession()
+    } catch {
+      // The account data is already deleted; a failed sign-out must not block the wipe.
+    }
+    invalidateSync()
+    await Promise.all([
+      db.household.clear(),
+      db.children.clear(),
+      db.events.clear(),
+      db.photos.clear(),
+      db.settings.clear(),
+    ])
+    set({ user: null, lastSyncAt: null, error: null, syncQueued: false })
+    return true
   },
 
   _setError: (e) => set({ error: e }),
