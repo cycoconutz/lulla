@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { Pool } from "pg";
 import { attachDatabasePool } from "@neon/functions";
+import { authUserExists, deleteAccount, lockActiveUser, neonAdminFrom } from "./account";
 
 const DATABASE_URL = process.env.DATABASE_URL!;
 const NEON_AUTH_JWKS_URL = process.env.NEON_AUTH_JWKS_URL!;
@@ -56,11 +57,21 @@ async function userIdFromToken(token: string | null | undefined): Promise<string
   }
 }
 
-// Verify the bearer JWT; returns the user id or null.
-async function bearerUserId(req: { header: (name: string) => string | undefined }): Promise<string | null> {
+// Tokens stay valid for up to 15 minutes after an account is deleted, so also
+// require that the user still exists.
+async function activeUserId(token: string | null | undefined): Promise<string | null> {
+  const userId = await userIdFromToken(token);
+  return userId && (await authUserExists(pool, userId)) ? userId : null;
+}
+
+function bearerToken(req: { header: (name: string) => string | undefined }): string | null {
   const auth = req.header("authorization");
-  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
-  return userIdFromToken(auth.slice(7));
+  return auth?.toLowerCase().startsWith("bearer ") ? auth.slice(7) : null;
+}
+
+// Verify the bearer JWT; returns the id of an existing user, or null.
+async function bearerUserId(req: { header: (name: string) => string | undefined }): Promise<string | null> {
+  return activeUserId(bearerToken(req));
 }
 
 // Create a household owned by the caller, becoming its first member.
@@ -83,6 +94,10 @@ app.post("/household", async (c) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    if (!(await lockActiveUser(client, userId))) {
+      await client.query("ROLLBACK");
+      return c.json({ error: "unauthorized" }, 401);
+    }
     const { rows } = await client.query(
       "INSERT INTO lulla.households (name, owner_user_id) VALUES ($1, $2) RETURNING id",
       [name, userId],
@@ -132,6 +147,10 @@ app.post("/household/join", async (c) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    if (!(await lockActiveUser(client, userId))) {
+      await client.query("ROLLBACK");
+      return c.json({ error: "unauthorized" }, 401);
+    }
     const { rows } = await client.query(
       `SELECT household_id FROM lulla.invites
        WHERE code = $1 AND revoked_at IS NULL AND used_at IS NULL
@@ -221,38 +240,14 @@ app.delete("/household", async (c) => {
   return c.json({ ok: true });
 });
 
-// Delete the caller's account data: leaves every household they belong to,
-// deletes the households they own (cascade-removing members, invites and
-// records), and removes invites they created. The Neon Auth user itself is NOT
-// deleted here: no supported self-service deletion call from a Function has been
-// confirmed (see the delete-account page for the manual fallback), so the
-// response reports authUserDeleted: false rather than guessing.
+// Delete the caller's account: app data, then the Neon Auth user. This is the
+// one route that accepts a token whose user is already gone, so that a retry
+// after a lost response still succeeds.
 app.delete("/account", async (c) => {
-  const userId = await bearerUserId(c.req);
+  const userId = await userIdFromToken(bearerToken(c.req));
   if (!userId) return c.json({ error: "unauthorized" }, 401);
-
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const ownedIds = (
-      await client.query("SELECT id FROM lulla.households WHERE owner_user_id = $1", [userId])
-    ).rows.map((r: { id: string }) => r.id);
-    if (ownedIds.length > 0) {
-      await client.query("DELETE FROM lulla.sync_records WHERE household_id = ANY($1)", [ownedIds]);
-      await client.query("DELETE FROM lulla.invites WHERE household_id = ANY($1)", [ownedIds]);
-      await client.query("DELETE FROM lulla.members WHERE household_id = ANY($1)", [ownedIds]);
-    }
-    const owned = await client.query("DELETE FROM lulla.households WHERE owner_user_id = $1", [userId]);
-    await client.query("DELETE FROM lulla.members WHERE user_id = $1", [userId]);
-    await client.query("DELETE FROM lulla.invites WHERE created_by = $1", [userId]);
-    await client.query("COMMIT");
-    return c.json({ ok: true, householdsDeleted: owned.rowCount ?? 0, authUserDeleted: false });
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
+  const result = await deleteAccount(pool, neonAdminFrom(process.env), userId);
+  return c.json(result.body, result.status);
 });
 
 // Push local records and deletes. LWW by client `updatedAt` (ISO string):
@@ -452,7 +447,7 @@ let sseGlobalCount = 0;
 // proxies don't drop the idle connection. Client reconnects with EventSource's
 // built-in retry, so revs missed while disconnected are picked up on reopen.
 app.get("/events", async (c) => {
-  const userId = await userIdFromToken(c.req.query("token"));
+  const userId = await activeUserId(c.req.query("token"));
   if (!userId) return c.json({ error: "unauthorized" }, 401);
   const member = await memberFor(userId);
   if (!member) return c.json({ error: "not a member" }, 403);

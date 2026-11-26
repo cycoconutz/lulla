@@ -5,8 +5,7 @@ import type { SyncState } from '../domain/types'
 import { restoreSession, sessionToken, signInEmail, signOutSession, signUpEmail, type SessionUser } from '../sync/auth'
 import { createHousehold, deleteAccount as apiDeleteAccount, deleteHousehold as apiDeleteHousehold, fetchHousehold, joinHousehold as apiJoinHousehold, leaveHousehold as apiLeaveHousehold, newInvite, SyncApiError } from '../sync/api'
 import { runSync } from '../sync/engine'
-import { disablePush } from '../domain/push'
-import { clearPushCred } from '../domain/pushCred'
+import { disablePushWithin } from '../domain/push'
 
 interface SyncStore {
   booting: boolean
@@ -41,6 +40,21 @@ const bootErrorText = (err: unknown): string =>
 let queuedResolvers: ((ok: boolean) => void)[] = []
 let syncIdleWaiters: (() => void)[] = []
 let syncEpoch = 0
+// While an account deletion runs, nothing else may write synced state.
+let deletingAccount = false
+let adopting: Promise<void> = Promise.resolve()
+// A lost success response also ends the session, so keep the last token: the
+// server accepts it for a retry until it expires.
+let deletionRetry: { userId: string; token: string } | null = null
+
+function tokenSubject(token: string): string | null {
+  try {
+    const part = token.split('.')[1]!.replace(/-/g, '+').replace(/_/g, '/')
+    return (JSON.parse(atob(part)) as { sub?: string }).sub ?? null
+  } catch {
+    return null
+  }
+}
 
 const settleIdle = () => {
   const waiters = syncIdleWaiters
@@ -152,6 +166,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   createHousehold: async (name) => {
+    if (deletingAccount) return false
     const token = await sessionToken()
     if (!token) {
       set({ error: 'Please sign in first.' })
@@ -193,6 +208,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   joinHousehold: async (code) => {
+    if (deletingAccount) return false
     const token = await sessionToken()
     if (!token) {
       set({ error: 'Please sign in first.' })
@@ -228,6 +244,7 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   regenInvite: async () => {
+    if (deletingAccount) return
     const token = await sessionToken()
     if (!token) return
     try {
@@ -238,32 +255,39 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
     }
   },
 
-  _adopt: async () => {
-    const token = await sessionToken()
-    if (!token) return
-    try {
-      const overview = await fetchHousehold(token)
-      await patchSync((s) => ({
-        ...s,
-        status: 'ready',
-        email: get().user?.email,
-        householdId: overview.householdId,
-        householdName: overview.name,
-        role: overview.role,
-        inviteCode: overview.inviteCode ?? undefined,
-        cursor: 0,
-        adopted: true,
-        ...(s.householdId === overview.householdId ? {} : { snapshot: undefined, pendingDeletes: [] }),
-        error: undefined,
-      }))
-      if (overview.householdId) await runSync(token)
-    } catch {
-      // Account isn't a member of a household yet — leave the
-      // "Start a family household" state alone; not an error.
+  _adopt: () => {
+    if (deletingAccount) return Promise.resolve()
+    const run = async () => {
+      const token = await sessionToken()
+      if (!token) return
+      try {
+        const overview = await fetchHousehold(token)
+        await patchSync((s) => ({
+          ...s,
+          status: 'ready',
+          email: get().user?.email,
+          householdId: overview.householdId,
+          householdName: overview.name,
+          role: overview.role,
+          inviteCode: overview.inviteCode ?? undefined,
+          cursor: 0,
+          adopted: true,
+          ...(s.householdId === overview.householdId ? {} : { snapshot: undefined, pendingDeletes: [] }),
+          error: undefined,
+        }))
+        if (overview.householdId) await runSync(token)
+      } catch {
+        // Account isn't a member of a household yet — leave the
+        // "Start a family household" state alone; not an error.
+      }
     }
+    const current = run()
+    adopting = current.catch(() => undefined)
+    return current
   },
 
   syncNow: async () => {
+    if (deletingAccount) return false
     if (get().syncing) {
       set({ syncQueued: true })
       return new Promise<boolean>((resolve) => { queuedResolvers.push(resolve) })
@@ -338,44 +362,73 @@ export const useSyncStore = create<SyncStore>((set, get) => ({
   },
 
   deleteAccount: async () => {
-    const token = await sessionToken()
-    if (!token) {
-      set({ error: 'Please sign in first.' })
-      return false
-    }
+    const user = get().user
+    if (deletingAccount || !user) return false
+    deletingAccount = true
     try {
-      await apiDeleteAccount(token)
-    } catch (err) {
-      set({ error: msg(err) })
-      return false
+      set({ error: null, syncQueued: false })
+      // Let running work finish so it cannot write anything back after the wipe.
+      invalidateSync()
+      await adopting
+      await waitForSyncIdle()
+
+      const token = (await sessionToken()) ?? (deletionRetry?.userId === user.id ? deletionRetry.token : null)
+      if (!token) {
+        set({ error: 'Please sign in first.' })
+        return false
+      }
+      // The session cookie is shared between tabs: never delete a different account.
+      if (tokenSubject(token) !== user.id) {
+        set({ error: 'You are signed in to a different account. Reload the app and try again.' })
+        return false
+      }
+      deletionRetry = { userId: user.id, token }
+      try {
+        const res = await apiDeleteAccount(token)
+        // Only wipe this device once the server confirms the sign-in is gone too.
+        if (res.authUserDeleted !== true) {
+          set({ error: 'Your account was not fully deleted. Please try again later.' })
+          return false
+        }
+      } catch (err) {
+        // 502: the family data is gone but the sign-in is not, so sync has nothing to talk to.
+        if (err instanceof SyncApiError && err.status === 502) {
+          await patchSync((s) => ({ ...s, status: 'off', inviteCode: undefined, error: undefined }))
+        }
+        set({ error: msg(err) })
+        return false
+      }
+      deletionRetry = null
+      // Drop this device's push subscription and credential; this must not block deletion.
+      await disablePushWithin()
+      // The account is gone: sign out and wipe everything stored on this device.
+      try {
+        await signOutSession()
+      } catch {
+        // The account is already deleted; a failed sign-out must not block the wipe.
+      }
+      invalidateSync()
+      try {
+        await Promise.all([
+          db.household.clear(),
+          db.children.clear(),
+          db.events.clear(),
+          db.photos.clear(),
+          db.settings.clear(),
+        ])
+      } catch {
+        set({
+          user: null,
+          lastSyncAt: null,
+          error: 'Your account was deleted, but this device could not be erased. Use "Erase everything on this device" in Settings.',
+        })
+        return false
+      }
+      set({ user: null, lastSyncAt: null, error: null, syncQueued: false })
+      return true
+    } finally {
+      deletingAccount = false
     }
-    // Drop this device's push subscription and credential; failures must not block deletion.
-    try {
-      await disablePush()
-    } catch {
-      // best-effort
-    }
-    try {
-      clearPushCred()
-    } catch {
-      // best-effort
-    }
-    // Server data is gone: sign out and wipe everything stored on this device.
-    try {
-      await signOutSession()
-    } catch {
-      // The account data is already deleted; a failed sign-out must not block the wipe.
-    }
-    invalidateSync()
-    await Promise.all([
-      db.household.clear(),
-      db.children.clear(),
-      db.events.clear(),
-      db.photos.clear(),
-      db.settings.clear(),
-    ])
-    set({ user: null, lastSyncAt: null, error: null, syncQueued: false })
-    return true
   },
 
   _setError: (e) => set({ error: e }),

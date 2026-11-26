@@ -385,14 +385,14 @@ export function AccountCard() {
               onClick={() => setConfirmingDelete(true)}
               className="w-full rounded-2xl border-2 border-rose-deep/40 px-4 py-2.5 text-xs font-bold text-rose-deep transition active:scale-[0.98]"
             >
-              Delete my data
+              Delete account
             </button>
           ) : (
             <div className="space-y-2 rounded-2xl bg-rose-deep/10 p-3">
               <p className="text-xs font-bold text-rose-deep">
-                Delete your family data? This removes your household data from the sync server (including any
-                family you own) and erases Lulla data on this device. Your sign-in account remains until you ask
-                us to remove it by emailing support@lulla.dev. It cannot be undone.
+                Delete your account? This removes your sign-in, any family you own (for all its members) and
+                the Lulla data on this device. Entries you added to someone else&apos;s family stay with that
+                family. It cannot be undone.
               </p>
               <div className="flex gap-2">
                 <button onClick={() => setConfirmingDelete(false)} disabled={busy} className="btn-outline flex-1 disabled:opacity-40">
@@ -409,14 +409,14 @@ export function AccountCard() {
                   disabled={busy}
                   className="flex-1 rounded-2xl bg-rose-deep px-4 py-2.5 text-xs font-bold text-white transition active:scale-[0.98] disabled:opacity-40"
                 >
-                  {busy ? 'Deleting…' : 'Yes, delete my data'}
+                  {busy ? 'Deleting…' : 'Yes, delete my account'}
                 </button>
               </div>
             </div>
           )}
           <p className="text-[11px] text-muted">
             <a href="/privacy" className="underline">Privacy policy</a> ·{' '}
-            <a href="/delete-account" className="underline">Data deletion help</a>
+            <a href="/delete-account" className="underline">Account deletion help</a>
           </p>
         </div>
       )}

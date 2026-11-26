@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Settings } from '../domain/types'
 
@@ -17,6 +18,7 @@ const m = vi.hoisted(() => ({
   newInvite: vi.fn(),
   leaveHousehold: vi.fn(),
   deleteHousehold: vi.fn(),
+  deleteAccount: vi.fn(),
   SyncApiError: class SyncApiError extends Error {},
 
   runSync: vi.fn(),
@@ -42,6 +44,7 @@ vi.mock('../sync/api', () => ({
   newInvite: m.newInvite,
   leaveHousehold: m.leaveHousehold,
   deleteHousehold: m.deleteHousehold,
+  deleteAccount: m.deleteAccount,
   SyncApiError: m.SyncApiError,
 }))
 
@@ -363,5 +366,84 @@ describe('useSyncStore household switches', () => {
     expect(saved.sync?.householdId).toBe('house-2')
     expect(saved.sync?.snapshot).toBeUndefined()
     expect(saved.sync?.pendingDeletes).toEqual([])
+  })
+})
+
+const tokenFor = (sub: string) => `h.${btoa(JSON.stringify({ sub }))}.s`
+
+describe('useSyncStore.deleteAccount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    m.sessionToken.mockResolvedValue(tokenFor('user-1'))
+    useSyncStore.setState({ user: { id: 'user-1', email: 'owner@example.com' }, error: null })
+  })
+
+  it('keeps this device signed in if the server does not confirm the sign-in was deleted', async () => {
+    m.deleteAccount.mockResolvedValueOnce({ ok: true, authUserDeleted: false })
+
+    expect(await useSyncStore.getState().deleteAccount()).toBe(false)
+
+    expect(useSyncStore.getState().user).not.toBeNull()
+    expect(useSyncStore.getState().error).toContain('not fully deleted')
+    expect(m.signOutSession).not.toHaveBeenCalled()
+  })
+
+  it('shows the server error and keeps local state when the request fails', async () => {
+    m.deleteAccount.mockRejectedValueOnce(new Error('your sign-in account was not'))
+
+    expect(await useSyncStore.getState().deleteAccount()).toBe(false)
+
+    expect(useSyncStore.getState().user).not.toBeNull()
+    expect(useSyncStore.getState().error).toContain('your sign-in account was not')
+    expect(m.signOutSession).not.toHaveBeenCalled()
+  })
+
+  it('signs out once the server confirms the account is gone', async () => {
+    m.deleteAccount.mockResolvedValueOnce({ ok: true, authUserDeleted: true })
+
+    expect(await useSyncStore.getState().deleteAccount()).toBe(true)
+
+    expect(m.signOutSession).toHaveBeenCalledTimes(1)
+    expect(useSyncStore.getState().user).toBeNull()
+  })
+
+  it('never deletes an account other than the one shown', async () => {
+    m.sessionToken.mockResolvedValue(tokenFor('someone-else'))
+
+    expect(await useSyncStore.getState().deleteAccount()).toBe(false)
+
+    expect(m.deleteAccount).not.toHaveBeenCalled()
+    expect(useSyncStore.getState().error).toContain('different account')
+  })
+
+  it('retries with the last token after a lost response ended the session', async () => {
+    m.deleteAccount.mockRejectedValueOnce(new Error('Offline'))
+    await useSyncStore.getState().deleteAccount()
+    m.sessionToken.mockResolvedValue(null)
+    m.deleteAccount.mockResolvedValueOnce({ ok: true, authUserDeleted: true })
+
+    expect(await useSyncStore.getState().deleteAccount()).toBe(true)
+
+    expect(m.deleteAccount).toHaveBeenLastCalledWith(tokenFor('user-1'))
+  })
+
+  it('waits for a running sync and blocks new ones', async () => {
+    let finish!: (v: { ok: boolean }) => void
+    m.getSettings.mockResolvedValue(settings)
+    m.runSync.mockReturnValueOnce(new Promise((resolve) => { finish = resolve }))
+    m.deleteAccount.mockResolvedValueOnce({ ok: true, authUserDeleted: true })
+    useSyncStore.setState({ syncing: false, syncQueued: false })
+    const running = useSyncStore.getState().syncNow()
+    await vi.waitFor(() => expect(m.runSync).toHaveBeenCalledTimes(1))
+
+    const deletion = useSyncStore.getState().deleteAccount()
+    expect(await useSyncStore.getState().syncNow()).toBe(false)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(m.deleteAccount).not.toHaveBeenCalled()
+    finish({ ok: true })
+
+    await running
+    expect(await deletion).toBe(true)
+    expect(m.runSync).toHaveBeenCalledTimes(1)
   })
 })

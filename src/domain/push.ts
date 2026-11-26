@@ -194,6 +194,19 @@ export async function disablePush(): Promise<void> {
   }
 }
 
+/** disablePush that always settles: `serviceWorker.ready` or the network can hang. */
+export async function disablePushWithin(ms = 5000): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([disablePush(), new Promise<void>((resolve) => { timer = setTimeout(resolve, ms) })])
+  } catch {
+    // best-effort
+  } finally {
+    clearTimeout(timer)
+    clearPushCred()
+  }
+}
+
 /** Upload (replace) this device's push queue from current rules + events. */
 export async function syncPushSchedule(settings: Settings | undefined, children: Child[]): Promise<void> {
   const cred = getPushCred()

@@ -60,7 +60,7 @@ export function deleteHousehold(token: string): Promise<{ ok: boolean }> {
   return call('/household', token, { method: 'DELETE' })
 }
 
-export function deleteAccount(token: string): Promise<{ ok: boolean }> {
+export function deleteAccount(token: string): Promise<{ ok: boolean; authUserDeleted?: boolean }> {
   return call('/account', token, { method: 'DELETE' })
 }
 

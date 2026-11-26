@@ -26,7 +26,7 @@
     <main>
       <p><a href="/">&larr; Back to Lulla</a></p>
       <h1>Privacy policy</h1>
-      <p class="meta">Last updated: November 25, 2026</p>
+      <p class="meta">Last updated: November 26, 2026</p>
 
       <p>
         Lulla is a calm, local-first parent and family tracker. This page explains what Lulla
@@ -38,6 +38,7 @@
         <li><strong>Account details</strong> (only if you create an account for family sync): your email address and display name.</li>
         <li><strong>Child profile details</strong>: your child's first name, birth date and sex, used to label the app and tailor what it shows.</li>
         <li><strong>Activity entries</strong> you log, such as feeds, sleep, diapers, routines and milestones, with any notes you type.</li>
+        <li><strong>Lock-screen reminders</strong> (only if you turn them on, with or without an account): your device's push address and keys, and each upcoming reminder's time and text, which can include your child's first name.</li>
         <li><strong>Photos</strong> you attach to milestones stay on your device only. They are never uploaded.</li>
       </ul>
 
@@ -46,8 +47,8 @@
         By default everything is stored on your own device, in your browser or app storage. If you
         choose to turn on family sync, your account details, child profile details and activity
         entries are also stored in a Neon Postgres database so that the people in your family
-        household can see the same logs on their devices. Sync is opt in; if you never create an
-        account, nothing leaves your device.
+        household can see the same logs on their devices. Sync is opt in. If you never create an
+        account and never turn on lock-screen reminders, your family data does not leave your device.
       </p>
 
       <h2>No ads, no analytics, no trackers</h2>
@@ -64,18 +65,21 @@
 
       <h2>Deleting your data</h2>
       <p>
-        You can delete your family data from inside the app (<strong>Settings &gt; Account &gt; Delete
-        my data</strong>), which removes it from the sync server and the device. Your sign-in account
-        remains until removed on request: we will remove your sign-in on request, by emailing
-        <a href="mailto:support@lulla.dev">support@lulla.dev</a>. See our
-        <a href="/delete-account">data deletion page</a>. You can also erase everything stored on
-        a device from <strong>Settings &gt; Your data</strong>.
+        You can delete your account from inside the app (<strong>Settings &gt; Account &gt; Delete
+        account</strong>). This deletes your sign-in and any family you own from our servers, and erases
+        Lulla data on that device. Entries you added to someone else's family stay with that family.
+        Our <a href="/delete-account">account deletion page</a> lists what is deleted and what can
+        remain, and explains how to ask by email. You can also erase everything stored on a device
+        from <strong>Settings &gt; Your data</strong>.
       </p>
 
       <h2>Retention</h2>
       <p>
-        We keep your synced data until you delete your family data or the family household. Data kept
-        only on your device stays there until you erase it or remove the app.
+        We keep synced data until you delete your account or the family that holds it. Copies may
+        persist for a limited time in our database provider's backup and restore history. Upcoming
+        reminders are replaced as your schedule changes, and the device registration is removed when
+        you turn reminders off, if the reminder service can be reached. Records of reminders already sent are not removed on a set schedule;
+        email us to ask for their removal. Data kept only on your device stays there until you erase it or remove the app.
       </p>
 
       <h2>Children's information</h2>
@@ -90,7 +94,7 @@
       </p>
 
       <footer>
-        <a href="/delete-account">Delete your data</a> &middot; <a href="/">Open Lulla</a>
+        <a href="/delete-account">Delete your account</a> &middot; <a href="/">Open Lulla</a>
       </footer>
     </main>
   </body>

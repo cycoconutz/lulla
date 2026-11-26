@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5efe6" />
-    <meta name="description" content="How to delete your Lulla family data and request removal of your sign-in." />
-    <title>Delete your Lulla data</title>
+    <meta name="description" content="How to delete your Lulla account and the data stored with it." />
+    <title>Delete your Lulla account</title>
     <style>
     :root { --bg:#fbf7f0; --ink:#2b2622; --muted:#6b6259; --gold:#a8741a; --card:#ffffff; --line:#e8dfd2; }
     @media (prefers-color-scheme: dark) { :root { --bg:#1d1a17; --ink:#f1ebe2; --muted:#b5aa9c; --gold:#e0b25a; --card:#27231f; --line:#3a342e; } }
@@ -25,45 +25,44 @@
   <body>
     <main>
       <p><a href="/">&larr; Back to Lulla</a></p>
-      <h1>Delete your Lulla data</h1>
+      <h1>Delete your Lulla account</h1>
       <p class="meta">Applies to the Lulla app and website at lulla.dev</p>
 
-      <h2>Option 1: delete your data in the app</h2>
+      <h2>Option 1: delete your account in the app</h2>
       <ol>
         <li>Open Lulla and sign in.</li>
         <li>Go to <strong>Settings</strong> and find the <strong>Account</strong> card at the top.</li>
-        <li>Tap <strong>Delete my data</strong> and confirm.</li>
+        <li>Tap <strong>Delete account</strong> and confirm.</li>
       </ol>
       <p>
-        This removes your household data from our sync server (including any family household you own)
-        and erases Lulla data stored on that device. Your sign-in account (email address and display
-        name) remains until you ask us to remove it: we will remove your sign-in on request, by
-        emailing <a href="mailto:support@lulla.dev">support@lulla.dev</a>.
+        This deletes your sign-in and any family you own from our servers, and erases Lulla data on
+        that device. If the app reports that your account was not fully deleted, try again or email us.
       </p>
 
       <h2>Option 2: ask us by email</h2>
       <p>
-        Email <a href="mailto:support@lulla.dev">support@lulla.dev</a> from the email address on the
-        account and ask us to remove your sign-in and any remaining data. We will confirm by reply.
+        If you cannot use the app, email <a href="mailto:support@lulla.dev">support@lulla.dev</a> from the
+        email address on the account and ask us to delete it. We will confirm by reply.
       </p>
 
       <h2>What gets deleted</h2>
       <ul>
-        <li>Your sign-in details (email address and display name): removed when you request it by email.</li>
-        <li>Your family sync data: child profile details and activity entries stored on our server, including any household you own.</li>
-        <li>Your membership in any household you joined.</li>
+        <li>Your sign-in details: email address, display name, password record and sessions.</li>
+        <li>Any family you own, including its child profiles, activity entries and invite codes. Its other members lose access to the shared data on our server.</li>
+        <li>Your membership in any family you joined.</li>
       </ul>
-      <p>
-        Photos are never uploaded, so there is nothing to delete on our side. Data stored on your
-        own devices is removed by the in-app deletion, or by erasing it in
-        <strong>Settings &gt; Your data</strong> or removing the app.
-      </p>
+
+      <h2>What can remain</h2>
+      <ul>
+        <li>Entries you added to a family owned by someone else stay with that family, as part of its shared history.</li>
+        <li>Data already saved on other devices, yours or a family member's, stays there until erased in <strong>Settings &gt; Your data</strong> or the app is removed.</li>
+        <li>If you turned on lock-screen reminders on other devices, turn them off there. Deleting your account only tries to unregister the device you delete it from, which can fail if the reminder service cannot be reached.</li>
+        <li>Copies may persist for a limited time in our database provider's backup and restore history.</li>
+      </ul>
+      <p>Photos are never uploaded, so there is nothing to delete on our side.</p>
 
       <h2>Timing</h2>
-      <p>
-        In-app deletion of your household data takes effect immediately on the sync server. To have
-        your sign-in removed, email <a href="mailto:support@lulla.dev">support@lulla.dev</a>.
-      </p>
+      <p>In-app deletion takes effect on our servers right away, apart from the items listed above.</p>
 
       <p>You can export your data first from <strong>Settings &gt; Your data</strong>. See also our <a href="/privacy">privacy policy</a>.</p>
 

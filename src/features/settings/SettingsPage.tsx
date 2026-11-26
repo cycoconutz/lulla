@@ -19,7 +19,7 @@ import { listChildren } from '../../domain/repositories'
 import { exportBackup, importBackup, downloadJson } from '../../db/exportImport'
 import { downloadCsv, csvDataForChild } from '../../db/exportImport'
 import { notify, scheduleRemindersForChild } from '../../domain/reminders'
-import { disablePush, enablePush, syncPushSchedule } from '../../domain/push'
+import { disablePushWithin, disablePush, enablePush, syncPushSchedule } from '../../domain/push'
 import { getPushCred } from '../../domain/pushCred'
 import { Segmented } from '../../components/ui/Segmented'
 import { AccountCard } from '../account/AccountCard'
@@ -94,6 +94,8 @@ export function SettingsPage() {
 
   const eraseAll = async () => {
     if (!window.confirm('Erase ALL Lulla data on this device? This cannot be undone.')) return
+    // Otherwise the server would keep sending this device's queued reminders.
+    await disablePushWithin()
     await Promise.all([
       db.household.clear(),
       db.children.clear(),
